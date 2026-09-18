@@ -1,0 +1,18 @@
+<!doctype html><html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Agendamentos</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link rel="stylesheet" href="/css/app.css"></head>
+<body>
+<nav class="navbar navbar-dark bg-dark navbar-expand-lg mb-4"><div class="container-fluid">
+<a class="navbar-brand" href="/">Atendimento Inteligente</a><div class="navbar-nav flex-wrap">
+<a class="nav-link" href="/">Dashboard</a><a class="nav-link" href="/pacientes">Pacientes</a>
+<a class="nav-link" href="/profissionais">Profissionais</a><a class="nav-link" href="/agendamentos">Agendamentos</a>
+<a class="nav-link" href="/fila-senhas">Fila de Senhas</a><a class="nav-link" href="/atendimentos">Atendimentos</a>
+<a class="nav-link" href="/prescricoes">Prescrições</a><a class="nav-link" href="/exames">Exames</a>
+<a class="nav-link" sec:authorize="hasAnyRole('ADMIN','GESTOR')" href="/relatorios">Relatórios</a>
+<form class="d-inline" method="post" action="/logout"><button class="btn btn-outline-light btn-sm mt-1">Sair</button></form>
+</div></div></nav>
+<main class="container">
+<div class="d-flex justify-content-between"><h2>Agendamentos</h2><a class="btn btn-primary" href="/agendamentos/novo">Novo</a></div>
+<table class="table table-striped"><thead><tr><th>dataHora</th><th>status</th><th>motivo</th><th></th></tr></thead><tbody><tr th:each="x:${itens}"><td th:text="${x.dataHora}"></td><td th:text="${x.status}"></td><td th:text="${x.motivo}"></td>
+<td><form th:action="@{/agendamentos/{id}/excluir(id=${x.id})}" method="post"><button class="btn btn-sm btn-outline-danger">Excluir</button></form></td></tr></tbody></table>
+</main></body></html>

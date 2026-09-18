@@ -1,0 +1,11 @@
+package br.com.hospital.atendimento.repository;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import br.com.portal.projeto.entity.Permissao;
+
+public interface PermissaoRepository extends JpaRepository<Permissao, Long> {
+	Optional<Permissao> findByNome(String nome);
+}

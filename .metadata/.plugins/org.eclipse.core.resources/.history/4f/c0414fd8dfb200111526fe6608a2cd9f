@@ -1,0 +1,14 @@
+package br.com.hospital.atendimento.service;
+import br.com.hospital.atendimento.model.*; import br.com.hospital.atendimento.repository.*;
+import org.springframework.security.crypto.password.PasswordEncoder; import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
+@Service
+public class UsuarioService {
+ private final UsuarioRepository repo; private final PasswordEncoder encoder;
+ public UsuarioService(UsuarioRepository r,PasswordEncoder e){repo=r;encoder=e;}
+ @Transactional public Usuario salvar(Usuario u,String novaSenha){
+  if(u.getId()!=null){var atual=repo.findById(u.getId()).orElseThrow(); if(novaSenha==null||novaSenha.isBlank())u.setSenha(atual.getSenha());else u.setSenha(encoder.encode(novaSenha));}
+  else {if(novaSenha==null||novaSenha.isBlank())throw new IllegalArgumentException("Senha obrigatória");u.setSenha(encoder.encode(novaSenha));}
+  return repo.save(u);
+ }
+ @Transactional public void alternar(Long id){var u=repo.findById(id).orElseThrow();u.setAtivo(!u.isAtivo());}
+}

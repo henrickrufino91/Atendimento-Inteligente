@@ -1,0 +1,11 @@
+package br.com.hospital.atendimento.model;
+import jakarta.persistence.*; import lombok.*; import java.time.*;
+@Entity @Getter @Setter @NoArgsConstructor
+public class Agendamento {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+ @ManyToOne(optional=false) private Paciente paciente;
+ @ManyToOne private Profissional profissional;
+ private LocalDateTime dataHora;
+ @Enumerated(EnumType.STRING) private StatusAgendamento status=StatusAgendamento.AGENDADO;
+ private String motivo;
+}

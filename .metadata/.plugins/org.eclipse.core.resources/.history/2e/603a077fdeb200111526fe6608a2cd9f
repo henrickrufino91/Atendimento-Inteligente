@@ -1,0 +1,5 @@
+package br.com.portal.projeto.entity.enums;
+
+public enum Role {
+	ADMIN, RECEPCAO, MEDICO, ENFERMAGEM, LABORATORIO, FARMACIA
+}

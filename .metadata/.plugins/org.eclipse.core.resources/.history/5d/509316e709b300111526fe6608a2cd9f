@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Classificações de risco</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<main class="container">
+  <div class="page-head"><div><h1>Classificações de risco</h1><p>Resumo das triagens realizadas hoje</p></div><a class="btn secondary" th:href="@{/classificacao-risco/classi}">Abrir fila</a></div>
+  <section class="risk-summary">
+    <div class="risk-card risk-vermelho"><span>Vermelho</span><strong th:text="${qtdVERMELHO}">0</strong></div>
+    <div class="risk-card risk-laranja"><span>Laranja</span><strong th:text="${qtdLARANJA}">0</strong></div>
+    <div class="risk-card risk-amarelo"><span>Amarelo</span><strong th:text="${qtdAMARELO}">0</strong></div>
+    <div class="risk-card risk-verde"><span>Verde</span><strong th:text="${qtdVERDE}">0</strong></div>
+    <div class="risk-card risk-azul"><span>Azul</span><strong th:text="${qtdAZUL}">0</strong></div>
+  </section>
+  <section class="panel">
+    <table>
+      <thead><tr><th>Horário</th><th>Senha</th><th>Paciente</th><th>Nível</th><th>Queixa principal</th><th>Profissional</th></tr></thead>
+      <tbody>
+        <tr th:each="c : ${classificacoes}">
+          <td th:text="${#temporals.format(c.classificadoEm,'dd/MM HH:mm')}"></td>
+          <td><a th:href="@{'/classificacao-risco/senha/' + ${c.senha.id}}" th:text="${c.senha.codigo}"></a></td>
+          <td th:text="${c.paciente != null ? c.paciente.nome : 'Não identificado'}"></td>
+          <td><span class="risk-badge" th:classappend="${' risk-' + #strings.toLowerCase(c.nivelFinal.name())}" th:text="${c.nivelFinal}"></span></td>
+          <td th:text="${c.queixaPrincipal}"></td>
+          <td th:text="${c.profissional != null and !#strings.isEmpty(c.profissional) ? c.profissional : '-'}"></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(classificacoes)}"><td colspan="6">Nenhuma classificação registrada.</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+</body>
+</html>

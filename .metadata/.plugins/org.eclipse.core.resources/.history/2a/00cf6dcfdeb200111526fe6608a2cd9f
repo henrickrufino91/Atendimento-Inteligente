@@ -1,0 +1,10 @@
+package br.com.hospital.atendimento.model;
+import jakarta.persistence.*; import lombok.*; import java.time.*;
+@Entity @Getter @Setter @NoArgsConstructor
+public class HistoricoStatusAtendimento {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+ @ManyToOne(optional=false) private Atendimento atendimento;
+ private LocalDateTime alteradoEm=LocalDateTime.now();
+ @Enumerated(EnumType.STRING) private StatusAtendimento status;
+ private String observacao;
+}

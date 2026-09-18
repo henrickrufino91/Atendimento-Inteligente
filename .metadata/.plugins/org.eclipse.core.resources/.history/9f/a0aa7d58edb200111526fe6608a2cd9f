@@ -1,0 +1,243 @@
+package br.com.portal.projeto.service;
+
+
+import com.lowagie.text.Chunk;
+import com.lowagie.text.Document;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+
+import java.awt.Color;
+import java.io.ByteArrayOutputStream;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+
+import org.springframework.stereotype.Service;
+
+import br.com.portal.projeto.dto.IndicadorDia;
+import br.com.portal.projeto.dto.IndicadorProfissional;
+import br.com.portal.projeto.dto.IndicadorRisco;
+import br.com.portal.projeto.dto.RelatorioIndicadores;
+
+
+
+@Service
+
+public class RelatorioPdfService {
+	private final RelatorioService relatorioService;
+
+	public byte[] gerarMensal(YearMonth mes) {
+
+	    if (mes == null) {
+	        mes = YearMonth.now();
+	    }
+
+	    LocalDate inicio = mes.atDay(1);
+	    LocalDate fim = mes.atEndOfMonth();
+
+	    RelatorioIndicadores r =
+	            relatorioService.gerar(inicio, fim);
+
+	    ByteArrayOutputStream out =
+	            new ByteArrayOutputStream();
+
+	    Document doc = new Document(
+	            PageSize.A4,
+	            36,
+	            36,
+	            42,
+	            42
+	    );
+
+	    try {
+
+	        PdfWriter.getInstance(doc, out);
+
+	        doc.open();
+
+	        Font titulo = FontFactory.getFont(
+	                FontFactory.HELVETICA_BOLD,
+	                18
+	        );
+
+	        Font subtitulo = FontFactory.getFont(
+	                FontFactory.HELVETICA_BOLD,
+	                12
+	        );
+
+	        Font normal = FontFactory.getFont(
+	                FontFactory.HELVETICA,
+	                9
+	        );
+
+	        doc.add(new Paragraph(
+	                "Hospital Smart - Relatório Gerencial Mensal",
+	                titulo
+	        ));
+
+	        doc.add(new Paragraph(
+	                "Período: "
+	                        + inicio.format(
+	                                DateTimeFormatter.ofPattern("dd/MM/yyyy")
+	                        )
+	                        + " a "
+	                        + fim.format(
+	                                DateTimeFormatter.ofPattern("dd/MM/yyyy")
+	                        ),
+	                normal
+	        ));
+
+	        doc.add(Chunk.NEWLINE);
+
+	        doc.add(new Paragraph(
+	                "Resumo Executivo",
+	                subtitulo
+	        ));
+
+	        PdfPTable tabela = new PdfPTable(2);
+
+	        tabela.setWidthPercentage(100);
+
+	        tabela.addCell("Indicador");
+	        tabela.addCell("Resultado");
+
+	        tabela.addCell("Senhas emitidas");
+	        tabela.addCell(
+	                String.valueOf(r.senhasEmitidas())
+	        );
+
+	        tabela.addCell("Senhas finalizadas");
+	        tabela.addCell(
+	                String.valueOf(r.senhasFinalizadas())
+	        );
+
+	        tabela.addCell("Atendimentos");
+	        tabela.addCell(
+	                String.valueOf(r.atendimentos())
+	        );
+
+	        tabela.addCell("Tempo médio de espera");
+	        tabela.addCell(
+	                String.format(
+	                        "%.1f min",
+	                        r.tempoMedioEsperaMin()
+	                )
+	        );
+
+	        tabela.addCell("Tempo médio de atendimento");
+	        tabela.addCell(
+	                String.format(
+	                        "%.1f min",
+	                        r.tempoMedioAtendimentoMin()
+	                )
+	        );
+
+	        tabela.addCell("SLA classificação de risco");
+	        tabela.addCell(
+	                String.format(
+	                        "%.1f%%",
+	                        r.percentualSlaRisco()
+	                )
+	        );
+
+	        doc.add(tabela);
+
+	        doc.add(Chunk.NEWLINE);
+
+	        doc.add(new Paragraph(
+	                "Classificação de Risco",
+	                subtitulo
+	        ));
+
+	        PdfPTable risco =
+	                new PdfPTable(4);
+
+	        risco.setWidthPercentage(100);
+
+	        risco.addCell("Nível");
+	        risco.addCell("Quantidade");
+	        risco.addCell("Dentro do alvo");
+	        risco.addCell("SLA");
+
+	        for (IndicadorRisco indicador : r.riscos()) {
+
+	            risco.addCell(
+	                    indicador.nivel().name()
+	            );
+
+	            risco.addCell(
+	                    String.valueOf(
+	                            indicador.quantidade()
+	                    )
+	            );
+
+	            risco.addCell(
+	                    String.valueOf(
+	                            indicador.dentroDoAlvo()
+	                    )
+	            );
+
+	            risco.addCell(
+	                    String.format(
+	                            "%.1f%%",
+	                            indicador.percentualDentroDoAlvo()
+	                    )
+	            );
+	        }
+
+	        doc.add(risco);
+
+	        doc.close();
+
+	        return out.toByteArray();
+
+	    } catch (Exception e) {
+
+	        if (doc.isOpen()) {
+	            doc.close();
+	        }
+
+	        throw new IllegalStateException(
+	                "Não foi possível gerar o relatório PDF",
+	                e
+	        );
+	    }
+	}
+
+	private static void addKpi(PdfPTable t, String nome, String valor) {
+		PdfPCell c = new PdfPCell();
+		c.setPadding(10);
+		c.setBorderColor(new Color(220, 224, 230));
+		Phrase p = new Phrase();
+		p.add(new Chunk(nome + "\n", FontFactory.getFont(FontFactory.HELVETICA, 8, Color.DARK_GRAY)));
+		p.add(new Chunk(valor, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, new Color(15, 118, 110))));
+		c.setPhrase(p);
+		t.addCell(c);
+	}
+
+	private static void header(PdfPTable t, String... cols) {
+		for (String s : cols) {
+			PdfPCell c = new PdfPCell(new Phrase(s, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, Color.WHITE)));
+			c.setBackgroundColor(new Color(52, 64, 84));
+			c.setPadding(6);
+			t.addCell(c);
+		}
+	}
+
+	private static void cell(PdfPTable t, String s) {
+		PdfPCell c = new PdfPCell(new Phrase(s == null ? "" : s, FontFactory.getFont(FontFactory.HELVETICA, 8)));
+		c.setPadding(5);
+		c.setBorderColor(new Color(234, 236, 240));
+		t.addCell(c);
+	}
+
+	private static String fmt(double v) {
+		return String.format(java.util.Locale.US, "%.1f", v).replace('.', ',');
+	}
+}

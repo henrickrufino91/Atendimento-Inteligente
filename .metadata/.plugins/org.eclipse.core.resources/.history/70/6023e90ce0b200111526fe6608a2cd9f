@@ -1,0 +1,43 @@
+package br.com.hospital.atendimento.controller;
+
+import java.time.LocalDate;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+
+import br.com.portal.projeto.entity.StatusSenha;
+import br.com.portal.projeto.repository.AgendamentoRepository;
+import br.com.portal.projeto.repository.AtendimentoRepository;
+import br.com.portal.projeto.repository.PacienteRepository;
+import br.com.portal.projeto.repository.SenhaAtendimentoRepository;
+
+@Controller
+public class HomeController {
+	private final PacienteRepository pacientes;
+	private final AtendimentoRepository atendimentos;
+	private final AgendamentoRepository agendamentos;
+	private final SenhaAtendimentoRepository senhas;
+
+	public HomeController(PacienteRepository p, AtendimentoRepository a, AgendamentoRepository g,
+			SenhaAtendimentoRepository s) {
+		pacientes = p;
+		atendimentos = a;
+		agendamentos = g;
+		senhas = s;
+	}
+
+	@GetMapping("/")
+	String home(Model m) {
+		m.addAttribute("pacientes", pacientes.count());
+		m.addAttribute("atendimentos", atendimentos.count());
+		m.addAttribute("agendamentos", agendamentos.count());
+		m.addAttribute("fila", senhas.countByDataAndStatus(LocalDate.now(), StatusSenha.AGUARDANDO));
+		return "dashboard";
+	}
+
+	@GetMapping("/login")
+	String login() {
+		return "login";
+	}
+}

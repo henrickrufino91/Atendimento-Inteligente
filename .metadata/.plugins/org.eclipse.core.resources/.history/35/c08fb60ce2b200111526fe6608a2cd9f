@@ -1,0 +1,5 @@
+package br.com.hospital.atendimento.model;
+
+public enum StatusTriagem {
+	AGUARDANDO, EM_TRIAGEM, CONCLUIDA, CANCELADA
+}

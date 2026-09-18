@@ -1,0 +1,2 @@
+package br.com.hospital.model;
+public enum Prioridade { BAIXA, NORMAL, ALTA, URGENTE, EMERGENCIA }

@@ -1,0 +1,8 @@
+package br.com.hospital.atendimento.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import br.com.portal.projeto.entity.Encaminhamento;
+
+public interface EncaminhamentoRepository extends JpaRepository<Encaminhamento, Long> {
+}

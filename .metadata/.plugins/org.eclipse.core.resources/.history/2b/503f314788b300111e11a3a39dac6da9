@@ -1,0 +1,3 @@
+package br.com.hospital.repository;
+import br.com.hospital.model.Prescricao; import org.springframework.data.jpa.repository.JpaRepository; import java.util.List;
+public interface PrescricaoRepository extends JpaRepository<Prescricao,Long>{ List<Prescricao> findByAtendimentoIdOrderByCriadoEmDesc(Long atendimentoId); }

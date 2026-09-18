@@ -1,0 +1,25 @@
+package br.com.hospital.controller;
+
+import br.com.hospital.model.*;
+import br.com.hospital.repository.PacienteRepository;
+import br.com.hospital.service.FilaSenhaService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+@Controller @RequestMapping("/fila-senhas") @RequiredArgsConstructor
+public class FilaSenhaController {
+    private final FilaSenhaService fila;
+    private final PacienteRepository pacientes;
+
+    @GetMapping String painel(Model m){ m.addAttribute("senhas",fila.hoje()); m.addAttribute("aguardando",fila.aguardando()); return "fila/painel"; }
+    @GetMapping("/nova") String nova(Model m){ m.addAttribute("tipos",TipoSenha.values()); m.addAttribute("pacientes",pacientes.findAll()); return "fila/form"; }
+    @PostMapping("/emitir") String emitir(@RequestParam TipoSenha tipo,@RequestParam(required=false) Long pacienteId,@RequestParam(required=false) String observacao,RedirectAttributes ra){ var s=fila.emitir(tipo,pacienteId,observacao); ra.addFlashAttribute("sucesso","Senha "+s.getCodigo()+" emitida com sucesso."); return "redirect:/fila-senhas"; }
+    @PostMapping("/chamar-proxima") String chamarProxima(@RequestParam(defaultValue="GUICHÊ 1") String guiche,RedirectAttributes ra){ try{ var s=fila.chamarProxima(guiche); ra.addFlashAttribute("sucesso","Chamando "+s.getCodigo()+" no "+s.getGuiche()+"."); }catch(IllegalStateException e){ ra.addFlashAttribute("erro",e.getMessage()); } return "redirect:/fila-senhas"; }
+    @PostMapping("/{id}/chamar") String chamar(@PathVariable Long id,@RequestParam(defaultValue="GUICHÊ 1") String guiche){ fila.chamar(id,guiche); return "redirect:/fila-senhas"; }
+    @GetMapping("/{id}/iniciar") String iniciar(@PathVariable Long id){ var s=fila.iniciar(id); String url="redirect:/atendimentos/novo?senhaId="+id; if(s.getPaciente()!=null) url+="&pacienteId="+s.getPaciente().getId(); return url; }
+    @PostMapping("/{id}/finalizar") String finalizar(@PathVariable Long id){ fila.finalizar(id); return "redirect:/fila-senhas"; }
+    @PostMapping("/{id}/cancelar") String cancelar(@PathVariable Long id){ fila.cancelar(id); return "redirect:/fila-senhas"; }
+}

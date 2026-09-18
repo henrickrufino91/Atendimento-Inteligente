@@ -1,0 +1,13 @@
+package br.com.hospital.atendimento.model;
+import jakarta.persistence.*; import lombok.*; import java.time.*;
+@Entity @Getter @Setter @NoArgsConstructor
+public class Atendimento {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+ @ManyToOne(optional=false) private Paciente paciente;
+ @ManyToOne private Profissional profissional;
+ @OneToOne private SenhaAtendimento senha;
+ private LocalDateTime iniciadoEm=LocalDateTime.now(); private LocalDateTime finalizadoEm;
+ @Enumerated(EnumType.STRING) private StatusAtendimento status=StatusAtendimento.ABERTO;
+ @Column(length=2000) private String queixa;
+ @Column(length=4000) private String conduta;
+}

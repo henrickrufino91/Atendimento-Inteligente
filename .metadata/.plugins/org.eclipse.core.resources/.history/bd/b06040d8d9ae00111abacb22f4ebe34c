@@ -1,0 +1,12 @@
+<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"><body>
+<nav th:fragment="nav" class="topbar"><a class="brand" th:href="@{/}">Hospital Smart</a><div class="links">
+<a th:href="@{/}">Dashboard</a>
+<a sec:authorize="hasAuthority('PACIENTE_VISUALIZAR')" th:href="@{/pacientes}">Pacientes</a>
+<a sec:authorize="hasAuthority('AGENDAMENTO_VISUALIZAR')" th:href="@{/agendamentos}">Agendamentos</a>
+<a sec:authorize="hasAuthority('FILA_VISUALIZAR')" th:href="@{/fila-senhas}">Fila de senhas</a>
+<a sec:authorize="hasAuthority('RISCO_CLASSIFICAR')" th:href="@{/classificacao-risco}">Classificação de risco</a>
+<a sec:authorize="hasAuthority('ATENDIMENTO_VISUALIZAR')" th:href="@{/atendimentos}">Atendimentos</a>
+<a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/usuarios}">Usuários</a>
+<a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/perfis}">Perfis</a>
+<form th:action="@{/logout}" method="post"><button class="linkbtn">Sair</button></form></div></nav>
+</body></html>

@@ -1,0 +1,37 @@
+package br.com.portal.projeto.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.com.portal.projeto.entity.Paciente;
+import br.com.portal.projeto.repository.PacienteRepository;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class PacienteService {
+	private final PacienteRepository repo;
+
+	public List<Paciente> listar(String busca) {
+		return busca == null || busca.isBlank() ? repo.findAll()
+				: repo.findTop10ByNomeContainingIgnoreCaseOrderByNome(busca);
+	}
+
+	public Paciente buscar(Long id) {
+		return repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Paciente não encontrado"));
+	}
+
+	@Transactional
+	public Paciente salvar(Paciente p) {
+		if (p.getId() == null && repo.existsByCpf(p.getCpf()))
+			throw new IllegalArgumentException("CPF já cadastrado");
+		return repo.save(p);
+	}
+
+	@Transactional
+	public void excluir(Long id) {
+		repo.deleteById(id);
+	}
+}

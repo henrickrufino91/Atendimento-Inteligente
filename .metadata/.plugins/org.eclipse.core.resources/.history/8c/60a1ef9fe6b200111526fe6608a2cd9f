@@ -1,0 +1,25 @@
+package br.com.hospital.atendimento.config;
+import br.com.hospital.atendimento.model.*; import br.com.hospital.atendimento.repository.*;
+import org.springframework.boot.CommandLineRunner; import org.springframework.context.annotation.*; import org.springframework.security.crypto.password.PasswordEncoder; import java.time.*; import java.util.*;
+@Configuration public class DataInitializer {
+ @Bean CommandLineRunner init(UsuarioRepository usuarios,PerfilRepository perfis,PermissaoRepository permissoes,PasswordEncoder pe,ProfissionalRepository profissionais){
+  return args->{
+   String[][] defs={
+    {"PACIENTE_VISUALIZAR","Pacientes - visualizar"},{"PACIENTE_CRIAR","Pacientes - criar"},{"PACIENTE_EDITAR","Pacientes - editar"},{"PACIENTE_EXCLUIR","Pacientes - excluir"},
+    {"TRIAGEM_VISUALIZAR","Triagem - visualizar"},{"TRIAGEM_REALIZAR","Triagem - realizar"},{"ATENDIMENTO_VISUALIZAR","Atendimento - visualizar"},{"ATENDIMENTO_REALIZAR","Atendimento - realizar"},{"ATENDIMENTO_FINALIZAR","Atendimento - finalizar"},
+    {"FILA_VISUALIZAR","Fila - visualizar"},{"FILA_GERENCIAR","Fila - gerenciar"},{"RELATORIO_VISUALIZAR","Relatórios - visualizar"},{"RELATORIO_EXPORTAR","Relatórios - exportar"},
+    {"USUARIO_VISUALIZAR","Usuários - visualizar"},{"USUARIO_GERENCIAR","Usuários - gerenciar"},{"PERFIL_GERENCIAR","Perfis e permissões - gerenciar"},{"AUDITORIA_VISUALIZAR","Auditoria - visualizar"}};
+   Set<Permissao> todas=new HashSet<>();
+   for(String[] d:defs)todas.add(permissoes.findByNome(d[0]).orElseGet(()->permissoes.save(new Permissao(d[0],d[1]))));
+   Perfil admin=perfis.findByNome("ADMIN").orElseGet(()->{Perfil p=new Perfil();p.setNome("ADMIN");return p;});
+   admin.setDescricao("Administrador do sistema");admin.setSistema(true);admin.setAtivo(true);admin.setPermissoes(todas);admin=perfis.save(admin);
+   final Perfil adminFinal=admin;
+   Usuario u=usuarios.findByEmailIgnoreCase("admin@hospital.local").orElseGet(Usuario::new);
+   if(u.getId()==null){u.setNome("Administrador");u.setEmail("admin@hospital.local");u.setSenha(pe.encode("Admin@123"));u.setUltimaTrocaSenha(LocalDateTime.now());}
+   else if(u.getSenha()==null||u.getSenha().isBlank()||!u.getSenha().startsWith("$2")){u.setSenha(pe.encode("Admin@123"));u.setUltimaTrocaSenha(LocalDateTime.now());}
+   u.setAtivo(true);u.setBloqueado(false);u.setBloqueadoAte(null);u.setTentativasFalhas(0);u.setTrocarSenhaProximoLogin(false);
+   if(u.getPerfis()==null)u.setPerfis(new HashSet<>());u.getPerfis().add(adminFinal);usuarios.save(u);
+   if(profissionais.count()==0){Profissional p=new Profissional();p.setNome("Profissional Demo");p.setConselho("CRM 0000");p.setEspecialidade("Clínica Geral");profissionais.save(p);}
+  };
+ }
+}

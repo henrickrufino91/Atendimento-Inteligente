@@ -1,0 +1,50 @@
+package br.com.hospital.service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+
+import br.com.portal.projeto.entity.Prioridade;
+
+@Service
+public class InteligenciaService {
+	public record TriagemResultado(Prioridade prioridade, int score, List<String> alertas, String recomendacao) {
+	}
+
+	public TriagemResultado analisar(String sintomas, Double temperatura, Integer fc, Double saturacao) {
+		String s = Optional.ofNullable(sintomas).orElse("").toLowerCase();
+		int score = 0;
+		List<String> alertas = new ArrayList<>();
+		if (s.contains("dor no peito") || s.contains("falta de ar")) {
+			score += 4;
+			alertas.add("Sintoma potencialmente grave");
+		}
+		if (s.contains("desmaio") || s.contains("convuls")) {
+			score += 5;
+			alertas.add("Alteração neurológica importante");
+		}
+		if (temperatura != null && temperatura >= 39) {
+			score += 2;
+			alertas.add("Febre alta");
+		}
+		if (fc != null && (fc > 120 || fc < 45)) {
+			score += 2;
+			alertas.add("Frequência cardíaca fora da faixa esperada");
+		}
+		if (saturacao != null && saturacao < 92) {
+			score += 5;
+			alertas.add("Saturação baixa");
+		}
+		Prioridade p = score >= 7 ? Prioridade.EMERGENCIA
+				: score >= 4 ? Prioridade.URGENTE : score >= 2 ? Prioridade.ALTA : Prioridade.NORMAL;
+		String rec = switch (p) {
+		case EMERGENCIA -> "Encaminhar imediatamente para avaliação médica.";
+		case URGENTE -> "Priorizar atendimento e reavaliar sinais vitais.";
+		case ALTA -> "Atender com prioridade e monitorar evolução.";
+		default -> "Fluxo habitual de atendimento, mantendo observação clínica.";
+		};
+		return new TriagemResultado(p, score, alertas, rec);
+	}
+}

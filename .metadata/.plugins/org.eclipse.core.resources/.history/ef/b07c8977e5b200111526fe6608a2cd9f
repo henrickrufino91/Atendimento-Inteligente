@@ -1,0 +1,10 @@
+package br.com.hospital.atendimento.model;
+import jakarta.persistence.*; import lombok.*; import java.time.*;
+@Entity @Getter @Setter @NoArgsConstructor
+public class SinalVital {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+ @ManyToOne(optional=false) private Triagem triagem;
+ private LocalDateTime registradoEm=LocalDateTime.now();
+ private Integer pressaoSistolica, pressaoDiastolica, frequenciaCardiaca, frequenciaRespiratoria, saturacao, glicemia, dor;
+ private Double temperatura, peso, altura;
+}

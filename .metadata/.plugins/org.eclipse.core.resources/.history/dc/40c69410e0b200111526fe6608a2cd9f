@@ -1,0 +1,12 @@
+package br.com.hospital.atendimento.controller;
+import br.com.hospital.atendimento.model.Paciente; import br.com.hospital.atendimento.repository.PacienteRepository;
+import jakarta.validation.Valid; import org.springframework.stereotype.Controller; import org.springframework.ui.Model; import org.springframework.validation.BindingResult; import org.springframework.web.bind.annotation.*;
+@Controller @RequestMapping("/pacientes")
+public class PacienteController {
+ private final PacienteRepository repo; public PacienteController(PacienteRepository r){repo=r;}
+ @GetMapping public String lista(Model m){m.addAttribute("itens",repo.findAll());return "pacientes/lista";}
+ @GetMapping("/novo") public String novo(Model m){m.addAttribute("item",new Paciente());return "pacientes/form";}
+ @GetMapping("/{id}/editar") public String editar(@PathVariable Long id,Model m){m.addAttribute("item",repo.findById(id).orElseThrow());return "pacientes/form";}
+ @PostMapping("/salvar") public String salvar(@Valid @ModelAttribute("item") Paciente p, BindingResult br){if(br.hasErrors())return "pacientes/form";repo.save(p);return "redirect:/pacientes";}
+ @PostMapping("/{id}/excluir") public String excluir(@PathVariable Long id){repo.deleteById(id);return "redirect:/pacientes";}
+}

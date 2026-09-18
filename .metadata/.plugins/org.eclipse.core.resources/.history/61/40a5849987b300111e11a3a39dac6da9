@@ -1,0 +1,18 @@
+package br.com.hospital.model;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
+import java.time.LocalDateTime;
+
+@Entity @Table(name="agendamento") @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Agendamento {
+    @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+    @ManyToOne(optional=false, fetch=FetchType.LAZY) @JoinColumn(name="paciente_id") private Paciente paciente;
+    @ManyToOne(optional=false, fetch=FetchType.LAZY) @JoinColumn(name="profissional_id") private Profissional profissional;
+    @NotNull @Column(nullable=false) private LocalDateTime dataHora;
+    @Column(nullable=false, length=100) private String tipo;
+    @Enumerated(EnumType.STRING) @Column(nullable=false, length=30) private StatusAgendamento status = StatusAgendamento.AGENDADO;
+    @Enumerated(EnumType.STRING) @Column(nullable=false, length=20) private Prioridade prioridade = Prioridade.NORMAL;
+    @Column(length=500) private String observacoes;
+}

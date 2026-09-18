@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Emitir senha</title>
+<link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+	<nav th:replace="~{fragments :: nav}"></nav>
+	<main class="container narrow">
+		<div class="page-head">
+			<div>
+				<h1>Emitir senha</h1>
+				<p>Cadastro de entrada na fila de atendimento</p>
+			</div>
+		</div>
+		<form class="panel form-grid" th:action="@{/fila-senhas/emitir}"
+			method="post">
+			<label>Tipo da senha<select name="tipo" required><option
+						th:each="t:${tipos}" th:value="${t}"
+						th:text="${t == T(br.com.portal.projeto.entity.enums.TipoSenha).PRIORITARIA ? 'Prioritária' : 'Normal'}"></option></select></label><label>Paciente
+				(opcional)<select name="pacienteId"><option value="">Sem
+						paciente vinculado</option>
+					<option th:each="p:${pacientes}" th:value="${p.id}"
+						th:text="${p.nome+' - CPF '+p.cpf}"></option></select>
+			</label><label class="span2">Observação<input name="observacao"
+				maxlength="255" placeholder="Ex.: retorno, coleta, triagem..."></label>
+			<div class="span2 actions">
+				<a class="btn secondary" th:href="@{/fila-senhas}">Cancelar</a>
+				<button class="primary">Emitir senha</button>
+			</div>
+		</form>
+	</main>
+</body>
+</html>

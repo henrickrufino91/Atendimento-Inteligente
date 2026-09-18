@@ -1,0 +1,3 @@
+<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org"><body>
+<nav th:fragment="nav" class="topbar"><a class="brand" th:href="@{/}">Hospital Smart</a><div class="links"><a th:href="@{/}">Dashboard</a><a th:href="@{/pacientes}">Pacientes</a><a th:href="@{/agendamentos}">Agendamentos</a><a th:href="@{/fila-senhas}">Fila de senhas</a><a th:href="@{/classificacao-risco}">Classificação de risco</a><a th:href="@{/atendimentos}">Atendimentos</a><form th:action="@{/logout}" method="post"><button class="linkbtn">Sair</button></form></div></nav>
+</body></html>

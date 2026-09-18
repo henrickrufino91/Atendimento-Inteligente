@@ -1,0 +1,2 @@
+package br.com.hospital.model;
+public enum Sexo { MASCULINO, FEMININO, OUTRO, NAO_INFORMADO }

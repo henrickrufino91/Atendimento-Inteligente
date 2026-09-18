@@ -1,0 +1,119 @@
+package br.com.hospital.service;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.com.portal.projeto.entity.ClassificacaoRisco;
+import br.com.portal.projeto.entity.SenhaAtendimento;
+import br.com.portal.projeto.entity.enums.NivelRisco;
+import br.com.portal.projeto.repository.ClassificacaoRiscoRepository;
+import br.com.portal.projeto.repository.SenhaAtendimentoRepository;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class ClassificacaoRiscoService {
+	
+	private final ClassificacaoRiscoRepository classificacoes;
+	private final SenhaAtendimentoRepository senhas;
+
+	public NivelRisco sugerir(Boolean consciente, Boolean dificuldadeRespiratoria, Boolean sangramentoImportante,
+			Boolean dorToracica, Boolean deficitNeurologicoAgudo, Double temperatura, Integer frequenciaCardiaca,
+			Integer frequenciaRespiratoria, Double saturacao, Integer escalaDor) {
+		boolean acordado = Boolean.TRUE.equals(consciente);
+		boolean dispneia = Boolean.TRUE.equals(dificuldadeRespiratoria);
+		boolean sangramento = Boolean.TRUE.equals(sangramentoImportante);
+		boolean toracica = Boolean.TRUE.equals(dorToracica);
+		boolean neuro = Boolean.TRUE.equals(deficitNeurologicoAgudo);
+
+		if (!acordado || (saturacao != null && saturacao < 90)
+				|| (frequenciaRespiratoria != null && frequenciaRespiratoria >= 35)
+				|| (frequenciaCardiaca != null && frequenciaCardiaca >= 160)
+				|| (sangramento && (escalaDor != null && escalaDor >= 8))) {
+			return NivelRisco.VERMELHO;
+		}
+
+		if (dispneia || toracica || neuro || sangramento || (saturacao != null && saturacao < 93)
+				|| (frequenciaCardiaca != null && frequenciaCardiaca >= 140)
+				|| (frequenciaRespiratoria != null && frequenciaRespiratoria >= 30)
+				|| (temperatura != null && temperatura >= 40.0) || (escalaDor != null && escalaDor >= 9)) {
+			return NivelRisco.LARANJA;
+		}
+
+		if ((saturacao != null && saturacao < 95)
+				|| (frequenciaCardiaca != null && (frequenciaCardiaca >= 120 || frequenciaCardiaca <= 50))
+				|| (frequenciaRespiratoria != null && (frequenciaRespiratoria >= 24 || frequenciaRespiratoria <= 10))
+				|| (temperatura != null && temperatura >= 39.0) || (escalaDor != null && escalaDor >= 7)) {
+			return NivelRisco.AMARELO;
+		}
+
+		if ((temperatura != null && temperatura >= 38.0) || (frequenciaCardiaca != null && frequenciaCardiaca >= 100)
+				|| (escalaDor != null && escalaDor >= 4)) {
+			return NivelRisco.VERDE;
+		}
+
+		return NivelRisco.AZUL;
+	}
+
+	@Transactional
+	public ClassificacaoRisco salvar(Long senhaId, String queixaPrincipal, String pressaoArterial, Double temperatura,
+			Integer frequenciaCardiaca, Integer frequenciaRespiratoria, Double saturacao, Integer escalaDor,
+			Boolean consciente, Boolean dificuldadeRespiratoria, Boolean sangramentoImportante, Boolean dorToracica,
+			Boolean deficitNeurologicoAgudo, NivelRisco nivelFinal, String profissional, String justificativaAlteracao,
+			String observacoes) {
+		SenhaAtendimento senha = senhas.findById(senhaId).orElseThrow();
+		NivelRisco sugerido = sugerir(consciente, dificuldadeRespiratoria, sangramentoImportante, dorToracica,
+				deficitNeurologicoAgudo, temperatura, frequenciaCardiaca, frequenciaRespiratoria, saturacao, escalaDor);
+
+		if (nivelFinal == null)
+			nivelFinal = sugerido;
+		if (nivelFinal != sugerido && (justificativaAlteracao == null || justificativaAlteracao.isBlank())) {
+			throw new IllegalArgumentException("Informe a justificativa para alterar o nível sugerido pelo sistema.");
+		}
+		if (escalaDor != null && (escalaDor < 0 || escalaDor > 10)) {
+			throw new IllegalArgumentException("A escala de dor deve estar entre 0 e 10.");
+		}
+
+		ClassificacaoRisco c = classificacoes.findBySenhaId(senhaId).orElseGet(ClassificacaoRisco::new);
+		c.setSenha(senha);
+		c.setPaciente(senha.getPaciente());
+		c.setQueixaPrincipal(queixaPrincipal);
+		c.setPressaoArterial(pressaoArterial);
+		c.setTemperatura(temperatura);
+		c.setFrequenciaCardiaca(frequenciaCardiaca);
+		c.setFrequenciaRespiratoria(frequenciaRespiratoria);
+		c.setSaturacao(saturacao);
+		c.setEscalaDor(escalaDor);
+		c.setConsciente(consciente == null || consciente);
+		c.setDificuldadeRespiratoria(Boolean.TRUE.equals(dificuldadeRespiratoria));
+		c.setSangramentoImportante(Boolean.TRUE.equals(sangramentoImportante));
+		c.setDorToracica(Boolean.TRUE.equals(dorToracica));
+		c.setDeficitNeurologicoAgudo(Boolean.TRUE.equals(deficitNeurologicoAgudo));
+		c.setNivelSugerido(sugerido);
+		c.setNivelFinal(nivelFinal);
+		c.setProfissional(profissional);
+		c.setJustificativaAlteracao(justificativaAlteracao);
+		c.setObservacoes(observacoes);
+		c.setClassificadoEm(LocalDateTime.now());
+
+		senha.setNivelRisco(nivelFinal);
+		senhas.save(senha);
+		return classificacoes.save(c);
+	}
+
+	public Optional<ClassificacaoRisco> buscarPorSenha(Long senhaId) {
+		return classificacoes.findBySenhaId(senhaId);
+	}
+
+	public long quantidadeHoje(NivelRisco nivel) {
+		var inicio = java.time.LocalDate.now().atStartOfDay();
+		return classificacoes.countByNivelFinalAndClassificadoEmBetween(nivel, inicio, inicio.plusDays(1));
+	}
+
+	public java.util.List<ClassificacaoRisco> ultimas() {
+		return classificacoes.findTop20ByOrderByClassificadoEmDesc();
+	}
+}

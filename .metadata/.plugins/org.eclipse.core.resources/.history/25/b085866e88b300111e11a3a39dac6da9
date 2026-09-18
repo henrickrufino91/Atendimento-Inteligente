@@ -1,0 +1,59 @@
+package br.com.hospital.service;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.com.portal.projeto.entity.Agendamento;
+import br.com.portal.projeto.entity.Prioridade;
+import br.com.portal.projeto.entity.StatusAgendamento;
+import br.com.portal.projeto.repository.AgendamentoRepository;
+import br.com.portal.projeto.repository.PacienteRepository;
+import br.com.portal.projeto.repository.ProfissionalRepository;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class AgendamentoService {
+	private final AgendamentoRepository repo;
+	private final PacienteRepository pacientes;
+	private final ProfissionalRepository profissionais;
+
+	public List<Agendamento> hoje() {
+		LocalDate d = LocalDate.now();
+		return repo.findByDataHoraBetweenOrderByDataHora(d.atStartOfDay(), d.plusDays(1).atStartOfDay().minusNanos(1));
+	}
+
+	public List<Agendamento> listar() {
+		return repo.findAll();
+	}
+
+	public Agendamento buscar(Long id) {
+		return repo.findById(id).orElseThrow(() -> new IllegalArgumentException("Agendamento não encontrado"));
+	}
+
+	@Transactional
+	public Agendamento salvar(Long id, Long pacienteId, Long profissionalId, LocalDateTime dataHora, String tipo,
+			Prioridade prioridade, String obs) {
+		Agendamento a = id == null ? new Agendamento() : buscar(id);
+		a.setPaciente(pacientes.findById(pacienteId).orElseThrow());
+		a.setProfissional(profissionais.findById(profissionalId).orElseThrow());
+		a.setDataHora(dataHora);
+		a.setTipo(tipo);
+		a.setPrioridade(prioridade == null ? Prioridade.NORMAL : prioridade);
+		a.setObservacoes(obs);
+		if (a.getStatus() == null)
+			a.setStatus(StatusAgendamento.AGENDADO);
+		return repo.save(a);
+	}
+
+	@Transactional
+	public void atualizarStatus(Long id, StatusAgendamento status) {
+		var a = buscar(id);
+		a.setStatus(status);
+		repo.save(a);
+	}
+}

@@ -1,0 +1,34 @@
+package br.com.hospital.atendimento.config;
+import br.com.hospital.atendimento.repository.UsuarioRepository;
+import org.springframework.context.annotation.*; import org.springframework.security.core.userdetails.*;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain; import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority; import java.util.stream.*;
+@Configuration public class SecurityConfig {
+ @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
+ @Bean UserDetailsService userDetailsService(UsuarioRepository repo){
+  return email->repo.findByEmailIgnoreCase(email.trim()).map(u->{
+   var authorities=u.getPerfis().stream().filter(p->p.isAtivo()).flatMap(p->Stream.concat(
+    Stream.of(new SimpleGrantedAuthority("ROLE_"+p.getNome())),
+    p.getPermissoes().stream().map(x->new SimpleGrantedAuthority(x.getNome())))).distinct().toList();
+   return User.withUsername(u.getEmail()).password(u.getSenha()).disabled(!u.isAtivo()).accountLocked(u.isBloqueado()).authorities(authorities).build();
+  }).orElseThrow(()->new UsernameNotFoundException("Usuário não encontrado"));
+ }
+ @Bean SecurityFilterChain filterChain(HttpSecurity http)throws Exception{
+  http.authorizeHttpRequests(a->a
+   .requestMatchers("/css/**","/js/**","/login","/error").permitAll()
+   .requestMatchers("/usuarios/**").hasAuthority("USUARIO_GERENCIAR")
+   .requestMatchers("/perfis/**").hasAuthority("PERFIL_GERENCIAR")
+   .requestMatchers("/auditoria/**").hasAuthority("AUDITORIA_VISUALIZAR")
+   .requestMatchers("/triagens/**").hasAuthority("TRIAGEM_REALIZAR")
+   .requestMatchers("/fila-senhas/**").hasAuthority("FILA_GERENCIAR")
+   .requestMatchers("/relatorios/**").hasAuthority("RELATORIO_VISUALIZAR")
+   .requestMatchers("/pacientes/novo","/pacientes/*/editar","/pacientes/salvar").hasAnyAuthority("PACIENTE_CRIAR","PACIENTE_EDITAR")
+   .requestMatchers("/pacientes/**").hasAuthority("PACIENTE_VISUALIZAR")
+   .requestMatchers("/atendimentos/**").hasAuthority("ATENDIMENTO_REALIZAR")
+   .anyRequest().authenticated())
+   .formLogin(f->f.loginPage("/login").usernameParameter("username").passwordParameter("password").defaultSuccessUrl("/",true).failureUrl("/login?erro").permitAll())
+   .logout(l->l.logoutSuccessUrl("/login?logout").permitAll());
+  return http.build();
+ }
+}

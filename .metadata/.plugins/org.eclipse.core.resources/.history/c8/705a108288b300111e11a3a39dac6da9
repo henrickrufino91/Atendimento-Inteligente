@@ -1,0 +1,58 @@
+package br.com.hospital.service;
+
+import br.com.hospital.model.*;
+import br.com.hospital.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.*;
+import java.util.*;
+
+@Service @RequiredArgsConstructor
+public class FilaSenhaService {
+    private final SenhaAtendimentoRepository senhas;
+    private final PacienteRepository pacientes;
+
+    @Transactional
+    public SenhaAtendimento emitir(TipoSenha tipo, Long pacienteId, String observacao){
+        LocalDate hoje=LocalDate.now();
+        int numero=senhas.maiorNumero(hoje,tipo)+1;
+        String prefixo=tipo==TipoSenha.PRIORITARIA?"P":"N";
+        Paciente paciente=pacienteId==null?null:pacientes.findById(pacienteId).orElse(null);
+        return senhas.save(SenhaAtendimento.builder()
+                .dataReferencia(hoje).tipo(tipo).numero(numero)
+                .codigo(prefixo+String.format("%03d",numero))
+                .paciente(paciente).status(StatusSenha.AGUARDANDO)
+                .emitidaEm(LocalDateTime.now()).observacao(observacao).build());
+    }
+
+    public List<SenhaAtendimento> hoje(){ return senhas.findByDataReferenciaOrderByEmitidaEmAsc(LocalDate.now()); }
+    public long aguardando(){ return senhas.countByDataReferenciaAndStatus(LocalDate.now(),StatusSenha.AGUARDANDO); }
+
+    @Transactional
+    public SenhaAtendimento chamarProxima(String guiche){
+        var aguardando=senhas.findByDataReferenciaAndStatusOrderByEmitidaEmAsc(LocalDate.now(),StatusSenha.AGUARDANDO);
+        SenhaAtendimento proxima=aguardando.stream()
+                .filter(s -> s.getNivelRisco() != null)
+                .sorted(Comparator
+                        .comparingInt((SenhaAtendimento s) -> s.getNivelRisco() == null ? 0 : s.getNivelRisco().getPeso()).reversed()
+                        .thenComparingInt(s -> s.getTipo() == TipoSenha.PRIORITARIA ? 0 : 1)
+                        .thenComparing(SenhaAtendimento::getEmitidaEm))
+                .findFirst()
+                .orElseThrow(()->new IllegalStateException("Não há senhas classificadas aguardando chamada."));
+        return chamar(proxima.getId(),guiche);
+    }
+
+    @Transactional
+    public SenhaAtendimento chamar(Long id,String guiche){
+        var s=buscar(id);
+        if(s.getNivelRisco()==null) throw new IllegalStateException("Classifique o risco antes de chamar a senha.");
+        s.setStatus(StatusSenha.CHAMADA); s.setChamadaEm(LocalDateTime.now()); s.setGuiche(guiche); return senhas.save(s);
+    }
+    @Transactional public SenhaAtendimento iniciar(Long id){ var s=buscar(id); s.setStatus(StatusSenha.EM_ATENDIMENTO); s.setIniciadaEm(LocalDateTime.now()); return senhas.save(s); }
+    @Transactional public void vincularAtendimento(Long id, Atendimento atendimento){ var s=buscar(id); s.setAtendimento(atendimento); s.setStatus(StatusSenha.EM_ATENDIMENTO); if(s.getIniciadaEm()==null)s.setIniciadaEm(LocalDateTime.now()); senhas.save(s); }
+    @Transactional public SenhaAtendimento finalizar(Long id){ var s=buscar(id); s.setStatus(StatusSenha.FINALIZADA); s.setFinalizadaEm(LocalDateTime.now()); return senhas.save(s); }
+    @Transactional public SenhaAtendimento cancelar(Long id){ var s=buscar(id); s.setStatus(StatusSenha.CANCELADA); s.setFinalizadaEm(LocalDateTime.now()); return senhas.save(s); }
+    @Transactional public void finalizarPorAtendimento(Long atendimentoId){ senhas.findByAtendimentoId(atendimentoId).ifPresent(s->{ s.setStatus(StatusSenha.FINALIZADA); s.setFinalizadaEm(LocalDateTime.now()); senhas.save(s); }); }
+    public SenhaAtendimento buscar(Long id){ return senhas.findById(id).orElseThrow(); }
+}

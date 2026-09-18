@@ -1,0 +1,14 @@
+package br.com.hospital.atendimento.controller;
+import br.com.hospital.atendimento.model.*; import br.com.hospital.atendimento.repository.*; import br.com.hospital.atendimento.service.UsuarioService;
+import org.springframework.stereotype.Controller; import org.springframework.ui.Model; import org.springframework.web.bind.annotation.*;
+@Controller @RequestMapping("/usuarios")
+public class UsuarioController {
+ private final UsuarioRepository repo; private final PerfilRepository perfis; private final UsuarioService service;
+ public UsuarioController(UsuarioRepository r,PerfilRepository p,UsuarioService s){repo=r;perfis=p;service=s;}
+ @GetMapping public String lista(Model m){m.addAttribute("itens",repo.findAll());return "usuarios/lista";}
+ @GetMapping("/novo") public String novo(Model m){m.addAttribute("item",new Usuario());m.addAttribute("perfis",perfis.findAll());return "usuarios/form";}
+ @GetMapping("/{id}/editar") public String editar(@PathVariable Long id,Model m){m.addAttribute("item",repo.findById(id).orElseThrow());m.addAttribute("perfis",perfis.findAll());return "usuarios/form";}
+ @PostMapping("/salvar") public String salvar(@ModelAttribute Usuario u,@RequestParam(required=false) String novaSenha){service.salvar(u,novaSenha);return "redirect:/usuarios";}
+ @PostMapping("/{id}/status") public String status(@PathVariable Long id){service.alternar(id);return "redirect:/usuarios";}
+ @PostMapping("/{id}/desbloquear") public String desbloquear(@PathVariable Long id){service.desbloquear(id);return "redirect:/usuarios";}
+}

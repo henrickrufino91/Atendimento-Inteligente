@@ -1,0 +1,63 @@
+package br.com.hospital.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import br.com.portal.projeto.entity.Paciente;
+import br.com.portal.projeto.entity.Sexo;
+import br.com.portal.projeto.service.PacienteService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@Controller
+@RequestMapping("/pacientes")
+@RequiredArgsConstructor
+public class PacienteController {
+	private final PacienteService service;
+
+	@GetMapping
+	String listar(@RequestParam(required = false) String busca, Model m) {
+		m.addAttribute("pacientes", service.listar(busca));
+		m.addAttribute("busca", busca);
+		return "pacientes/lista";
+	}
+
+	@GetMapping("/novo")
+	String novo(Model m) {
+		m.addAttribute("paciente", new Paciente());
+		m.addAttribute("sexos", Sexo.values());
+		return "pacientes/form";
+	}
+
+	@GetMapping("/{id}/editar")
+	String editar(@PathVariable Long id, Model m) {
+		m.addAttribute("paciente", service.buscar(id));
+		m.addAttribute("sexos", Sexo.values());
+		return "pacientes/form";
+	}
+
+	@PostMapping("/salvar")
+	String salvar(@Valid @ModelAttribute Paciente paciente, BindingResult br, Model m, RedirectAttributes ra) {
+		if (br.hasErrors()) {
+			m.addAttribute("sexos", Sexo.values());
+			return "pacientes/form";
+		}
+		try {
+			service.salvar(paciente);
+			ra.addFlashAttribute("sucesso", "Paciente salvo com sucesso.");
+			return "redirect:/pacientes";
+		} catch (Exception e) {
+			m.addAttribute("erro", e.getMessage());
+			m.addAttribute("sexos", Sexo.values());
+			return "pacientes/form";
+		}
+	}
+}

@@ -1,0 +1,61 @@
+package br.com.hospital.atendimento.config;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import br.com.portal.projeto.entity.Perfil;
+import br.com.portal.projeto.entity.Permissao;
+import br.com.portal.projeto.entity.Profissional;
+import br.com.portal.projeto.entity.Usuario;
+import br.com.portal.projeto.repository.PerfilRepository;
+import br.com.portal.projeto.repository.PermissaoRepository;
+import br.com.portal.projeto.repository.ProfissionalRepository;
+import br.com.portal.projeto.repository.UsuarioRepository;
+
+@Configuration
+public class DataInitializer {
+	@Bean
+	CommandLineRunner init(UsuarioRepository usuarios, PerfilRepository perfis, PermissaoRepository permissoes,
+			PasswordEncoder pe, ProfissionalRepository profissionais) {
+		return args -> {
+			String[][] ps = { { "PACIENTE_VISUALIZAR", "Visualizar pacientes" },
+					{ "PACIENTE_EDITAR", "Cadastrar e editar pacientes" }, { "TRIAGEM_REALIZAR", "Realizar triagem" },
+					{ "ATENDIMENTO_REALIZAR", "Realizar atendimento" },
+					{ "FILA_GERENCIAR", "Gerenciar fila de senhas" },
+					{ "RELATORIO_VISUALIZAR", "Visualizar relatórios" },
+					{ "USUARIO_GERENCIAR", "Gerenciar usuários, perfis e permissões" } };
+			Set<Permissao> todas = new HashSet<>();
+			for (String[] x : ps)
+				todas.add(permissoes.findByNome(x[0]).orElseGet(() -> permissoes.save(new Permissao(x[0], x[1]))));
+			Perfil admin = perfis.findByNome("ADMIN").orElseGet(() -> {
+				Perfil p = new Perfil();
+				p.setNome("ADMIN");
+				p.setDescricao("Administrador do sistema");
+				return p;
+			});
+			admin.setPermissoes(todas);
+			admin = perfis.save(admin);
+			if (usuarios.count() == 0) {
+				Usuario u = new Usuario();
+				u.setNome("Administrador");
+				u.setEmail("admin@hospital.local");
+				u.setSenha(pe.encode("Admin@123"));
+				u.setAtivo(true);
+				u.setPerfis(Set.of(admin));
+				usuarios.save(u);
+			}
+			if (profissionais.count() == 0) {
+				Profissional p = new Profissional();
+				p.setNome("Profissional Demo");
+				p.setConselho("CRM 0000");
+				p.setEspecialidade("Clínica Geral");
+				profissionais.save(p);
+			}
+		};
+	}
+}

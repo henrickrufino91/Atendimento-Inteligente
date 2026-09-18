@@ -1,0 +1,97 @@
+package br.com.hospital.controller;
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.YearMonth;
+
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import br.com.portal.projeto.dto.IndicadoresTempoReal;
+import br.com.portal.projeto.service.RelatorioPdfService;
+import br.com.portal.projeto.service.RelatorioService;
+import lombok.RequiredArgsConstructor;
+
+@Controller
+@RequestMapping("/relatorios")
+@RequiredArgsConstructor
+public class RelatorioController {
+	private final RelatorioService service;
+	private final RelatorioPdfService pdfService;
+
+	@GetMapping
+	@PreAuthorize("hasAuthority('RELATORIO_VISUALIZAR')")
+	public String dashboard(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim, Model model) {
+		var r = service.gerar(inicio, fim);
+		model.addAttribute("r", r);
+		model.addAttribute("inicio", r.inicio());
+		model.addAttribute("fim", r.fim());
+		model.addAttribute("mesPdf", YearMonth.now());
+		return "relatorios/dashboard";
+	}
+
+	@GetMapping("/tempo-real")
+	@PreAuthorize("hasAuthority('PAINEL_GERENCIAL_VISUALIZAR')")
+	public String tempoReal() {
+		return "relatorios/tempo-real";
+	}
+
+	@GetMapping("/api/tempo-real")
+	@ResponseBody
+	@PreAuthorize("hasAuthority('PAINEL_GERENCIAL_VISUALIZAR')")
+	public IndicadoresTempoReal apiTempoReal() {
+		return service.tempoReal();
+	}
+
+	@GetMapping("/api/periodo")
+	@ResponseBody
+	@PreAuthorize("hasAuthority('RELATORIO_VISUALIZAR')")
+	public Object apiPeriodo(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
+		return service.gerar(inicio, fim);
+	}
+
+	@GetMapping(value = "/pdf/mensal", produces = MediaType.APPLICATION_PDF_VALUE)
+	@PreAuthorize("hasAuthority('RELATORIO_PDF_GERAR')")
+	public ResponseEntity<byte[]> pdfMensal(@RequestParam(required = false) String mes) {
+		YearMonth ym = (mes == null || mes.isBlank()) ? YearMonth.now() : YearMonth.parse(mes);
+		byte[] pdf = pdfService.gerarMensal(ym);
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=relatorio-gerencial-" + ym + ".pdf")
+				.contentType(MediaType.APPLICATION_PDF).body(pdf);
+	}
+
+	@GetMapping(value = "/exportar/senhas", produces = "text/csv")
+	@PreAuthorize("hasAuthority('RELATORIO_EXPORTAR')")
+	public ResponseEntity<byte[]> exportarSenhas(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
+		return csv("relatorio-senhas.csv", service.csvSenhas(inicio, fim));
+	}
+
+	@GetMapping(value = "/exportar/atendimentos", produces = "text/csv")
+	@PreAuthorize("hasAuthority('RELATORIO_EXPORTAR')")
+	public ResponseEntity<byte[]> exportarAtendimentos(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
+		return csv("relatorio-atendimentos.csv", service.csvAtendimentos(inicio, fim));
+	}
+
+	private ResponseEntity<byte[]> csv(String nome, String conteudo) {
+		byte[] bytes = ("\uFEFF" + conteudo).getBytes(StandardCharsets.UTF_8);
+		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + nome)
+				.contentType(MediaType.parseMediaType("text/csv;charset=UTF-8")).body(bytes);
+	}
+}

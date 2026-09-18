@@ -1,0 +1,10 @@
+package br.com.hospital.atendimento.model;
+import jakarta.persistence.*; import lombok.*; import java.time.*;
+@Entity @Getter @Setter @NoArgsConstructor
+public class Encaminhamento {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+ @ManyToOne(optional=false) private Atendimento atendimento;
+ private LocalDateTime criadoEm=LocalDateTime.now();
+ private String destino;
+ @Column(length=2000) private String motivo;
+}

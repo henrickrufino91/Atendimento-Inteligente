@@ -1,0 +1,28 @@
+package br.com.portal.projeto.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import br.com.portal.projeto.repository.AuditoriaUsuarioRepository;
+import br.com.portal.projeto.repository.HistoricoLoginRepository;
+
+@Controller
+@RequestMapping("/auditoria")
+public class AuditoriaController {
+	private final AuditoriaUsuarioRepository audit;
+	private final HistoricoLoginRepository logins;
+
+	public AuditoriaController(AuditoriaUsuarioRepository a, HistoricoLoginRepository l) {
+		audit = a;
+		logins = l;
+	}
+
+	@GetMapping
+	public String tela(Model m) {
+		m.addAttribute("auditorias", audit.findAll());
+		m.addAttribute("logins", logins.findAll());
+		return "auditoria/lista";
+	}
+}

@@ -1,0 +1,54 @@
+package br.com.hospital.atendimento.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import br.com.portal.projeto.entity.Agendamento;
+import br.com.portal.projeto.repository.AgendamentoRepository;
+import br.com.portal.projeto.repository.PacienteRepository;
+import br.com.portal.projeto.repository.ProfissionalRepository;
+
+@Controller
+@RequestMapping("/agendamentos")
+public class AgendamentoController {
+	private final AgendamentoRepository repo;
+	private final PacienteRepository pacientes;
+	private final ProfissionalRepository profissionais;
+
+	public AgendamentoController(AgendamentoRepository r, PacienteRepository p, ProfissionalRepository pr) {
+		repo = r;
+		pacientes = p;
+		profissionais = pr;
+	}
+
+	@GetMapping
+	public String lista(Model m) {
+		m.addAttribute("itens", repo.findAll());
+		return "agendamentos/lista";
+	}
+
+	@GetMapping("/novo")
+	public String novo(Model m) {
+		m.addAttribute("item", new Agendamento());
+		m.addAttribute("pacientes", pacientes.findAll());
+		m.addAttribute("profissionais", profissionais.findAll());
+		return "agendamentos/form";
+	}
+
+	@PostMapping("/salvar")
+	public String salvar(@ModelAttribute Agendamento x) {
+		repo.save(x);
+		return "redirect:/agendamentos";
+	}
+
+	@PostMapping("/{id}/excluir")
+	public String excluir(@PathVariable Long id) {
+		repo.deleteById(id);
+		return "redirect:/agendamentos";
+	}
+}

@@ -1,0 +1,52 @@
+package br.com.portal.projeto.config;
+
+import java.time.LocalDateTime;
+
+import org.springframework.context.event.EventListener;
+import org.springframework.security.authentication.event.AbstractAuthenticationFailureEvent;
+import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.com.portal.projeto.entity.HistoricoLogin;
+import br.com.portal.projeto.repository.HistoricoLoginRepository;
+import br.com.portal.projeto.repository.UsuarioRepository;
+
+@Component
+public class AuthenticationEvents {
+	private final UsuarioRepository usuarios;
+	private final HistoricoLoginRepository historico;
+
+	public AuthenticationEvents(UsuarioRepository u, HistoricoLoginRepository h) {
+		usuarios = u;
+		historico = h;
+	}
+
+	@EventListener
+	@Transactional
+	public void sucesso(AuthenticationSuccessEvent e) {
+		String email = e.getAuthentication().getName();
+		usuarios.findByEmailIgnoreCase(email).ifPresent(u -> {
+			u.setUltimoLogin(LocalDateTime.now());
+			u.setTentativasFalhas(0);
+			u.setBloqueado(false);
+			u.setBloqueadoAte(null);
+		});
+		historico.save(new HistoricoLogin(email, true, "Login realizado com sucesso"));
+	}
+
+	@EventListener
+	@Transactional
+	public void falha(AbstractAuthenticationFailureEvent e) {
+		String email = e.getAuthentication().getName();
+		usuarios.findByEmailIgnoreCase(email).ifPresent(u -> {
+			int n = u.getTentativasFalhas() + 1;
+			u.setTentativasFalhas(n);
+			if (n >= 5) {
+				u.setBloqueado(true);
+				u.setBloqueadoAte(LocalDateTime.now().plusMinutes(15));
+			}
+		});
+		historico.save(new HistoricoLogin(email, false, "Falha de autenticação"));
+	}
+}

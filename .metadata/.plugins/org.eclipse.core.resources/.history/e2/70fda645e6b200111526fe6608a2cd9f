@@ -1,0 +1,12 @@
+package br.com.hospital.atendimento.controller;
+import br.com.hospital.atendimento.model.*; import br.com.hospital.atendimento.repository.PacienteRepository; import br.com.hospital.atendimento.service.FilaService;
+import org.springframework.stereotype.Controller; import org.springframework.ui.Model; import org.springframework.web.bind.annotation.*;
+@Controller @RequestMapping("/fila-senhas")
+public class FilaController {
+ private final FilaService service; private final PacienteRepository pacientes; public FilaController(FilaService s,PacienteRepository p){service=s;pacientes=p;}
+ @GetMapping public String lista(Model m){m.addAttribute("senhas",service.hoje());m.addAttribute("pacientes",pacientes.findAll());m.addAttribute("prioridades",PrioridadeSenha.values());return "fila/lista";}
+ @PostMapping("/emitir") public String emitir(@RequestParam PrioridadeSenha prioridade,@RequestParam(required=false) Long pacienteId){service.emitir(prioridade,pacienteId);return "redirect:/fila-senhas";}
+ @PostMapping("/{id}/chamar") public String chamar(@PathVariable Long id,@RequestParam(defaultValue="01") String guiche){service.chamar(id,guiche);return "redirect:/fila-senhas";}
+ @PostMapping("/{id}/iniciar") public String iniciar(@PathVariable Long id){service.iniciar(id);return "redirect:/fila-senhas";}
+ @PostMapping("/{id}/finalizar") public String finalizar(@PathVariable Long id){service.finalizar(id);return "redirect:/fila-senhas";}
+}

@@ -1,0 +1,10 @@
+package br.com.hospital.atendimento.model;
+import jakarta.persistence.*; import lombok.*; import java.time.*;
+@Entity @Getter @Setter @NoArgsConstructor @Table(name="auditoria_usuario")
+public class AuditoriaUsuario {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+ private LocalDateTime dataHora=LocalDateTime.now();
+ private String usuarioResponsavel, acao, entidade, entidadeId;
+ @Column(length=3000) private String detalhes;
+ public AuditoriaUsuario(String r,String a,String e,String id,String d){usuarioResponsavel=r;acao=a;entidade=e;entidadeId=id;detalhes=d;}
+}

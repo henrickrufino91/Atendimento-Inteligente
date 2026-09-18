@@ -1,0 +1,139 @@
+package br.com.portal.projeto.config;
+
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import br.com.portal.projeto.entity.Paciente;
+import br.com.portal.projeto.entity.Perfil;
+import br.com.portal.projeto.entity.Permissao;
+import br.com.portal.projeto.entity.Profissional;
+import br.com.portal.projeto.entity.Role;
+import br.com.portal.projeto.entity.Sexo;
+import br.com.portal.projeto.entity.Usuario;
+import br.com.portal.projeto.repository.PacienteRepository;
+import br.com.portal.projeto.repository.PerfilRepository;
+import br.com.portal.projeto.repository.PermissaoRepository;
+import br.com.portal.projeto.repository.ProfissionalRepository;
+import br.com.portal.projeto.repository.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+
+@Configuration
+@RequiredArgsConstructor
+public class DataInitializer {
+	private final PasswordEncoder encoder;
+
+	@Bean
+	CommandLineRunner seed(UsuarioRepository usuarios, PerfilRepository perfis, PermissaoRepository permissoes,
+			ProfissionalRepository profissionais, PacienteRepository pacientes) {
+		return args -> {
+
+			Map<String, String[]> defs = new LinkedHashMap<>();
+			defs.put("PACIENTE_VISUALIZAR",
+					new String[] { "Visualizar pacientes", "Consultar cadastro e histórico de pacientes" });
+			defs.put("PACIENTE_EDITAR", new String[] { "Editar pacientes", "Cadastrar e alterar pacientes" });
+			defs.put("AGENDAMENTO_VISUALIZAR", new String[] { "Visualizar agendamentos", "Consultar agenda" });
+			defs.put("AGENDAMENTO_EDITAR", new String[] { "Editar agendamentos", "Criar e alterar agendamentos" });
+			defs.put("FILA_VISUALIZAR", new String[] { "Visualizar fila", "Consultar fila de senhas" });
+			defs.put("FILA_EMITIR", new String[] { "Emitir senha", "Gerar nova senha de atendimento" });
+			defs.put("FILA_CHAMAR", new String[] { "Chamar senha", "Chamar pacientes da fila" });
+			defs.put("RISCO_CLASSIFICAR",
+					new String[] { "Classificar risco", "Realizar e confirmar classificação de risco" });
+			defs.put("ATENDIMENTO_VISUALIZAR",
+					new String[] { "Visualizar atendimentos", "Consultar atendimentos e prontuário" });
+			defs.put("ATENDIMENTO_EDITAR",
+					new String[] { "Editar atendimentos", "Abrir, alterar e finalizar atendimento" });
+			defs.put("EXAME_GERENCIAR",
+					new String[] { "Gerenciar exames", "Solicitar e registrar resultados de exames" });
+			defs.put("PRESCRICAO_GERENCIAR", new String[] { "Gerenciar prescrições", "Criar e alterar prescrições" });
+			defs.put("USUARIO_GERENCIAR",
+					new String[] { "Gerenciar usuários", "Administrar usuários e vínculos de perfis" });
+			defs.put("PERFIL_GERENCIAR", new String[] { "Gerenciar perfis", "Administrar perfis e permissões" });
+			defs.put("RELATORIO_VISUALIZAR",
+					new String[] { "Visualizar relatórios", "Consultar indicadores operacionais e gerenciais" });
+			defs.put("RELATORIO_EXPORTAR",
+					new String[] { "Exportar relatórios", "Exportar dados de fila e atendimentos em CSV" });
+			defs.put("PAINEL_GERENCIAL_VISUALIZAR", new String[] { "Painel gerencial em tempo real",
+					"Visualizar indicadores operacionais atualizados automaticamente" });
+			defs.put("RELATORIO_PDF_GERAR",
+					new String[] { "Gerar relatório PDF mensal", "Emitir relatório gerencial mensal em PDF" });
+
+			Map<String, Permissao> pm = new LinkedHashMap<>();
+			defs.forEach((codigo, v) -> pm.put(codigo, permissoes.findByCodigo(codigo).orElseGet(
+					() -> permissoes.save(Permissao.builder().codigo(codigo).nome(v[0]).descricao(v[1]).build()))));
+
+			criarPerfil(perfis, "ADMIN", "Administrador", "Acesso administrativo completo", pm.keySet(), pm);
+			criarPerfil(perfis, "RECEPCAO", "Recepção", "Cadastro, agenda e emissão de senhas",
+					Set.of("PACIENTE_VISUALIZAR", "PACIENTE_EDITAR", "AGENDAMENTO_VISUALIZAR", "AGENDAMENTO_EDITAR",
+							"FILA_VISUALIZAR", "FILA_EMITIR", "FILA_CHAMAR", "RELATORIO_VISUALIZAR",
+							"PAINEL_GERENCIAL_VISUALIZAR"),
+					pm);
+			criarPerfil(perfis, "ENFERMAGEM", "Enfermagem", "Fila, triagem, risco e acompanhamento",
+					Set.of("PACIENTE_VISUALIZAR", "AGENDAMENTO_VISUALIZAR", "FILA_VISUALIZAR", "FILA_CHAMAR",
+							"RISCO_CLASSIFICAR", "ATENDIMENTO_VISUALIZAR", "RELATORIO_VISUALIZAR",
+							"PAINEL_GERENCIAL_VISUALIZAR"),
+					pm);
+			criarPerfil(perfis, "MEDICO", "Médico", "Atendimento clínico, prescrições e exames",
+					Set.of("PACIENTE_VISUALIZAR", "AGENDAMENTO_VISUALIZAR", "FILA_VISUALIZAR", "ATENDIMENTO_VISUALIZAR",
+							"ATENDIMENTO_EDITAR", "EXAME_GERENCIAR", "PRESCRICAO_GERENCIAR", "RELATORIO_VISUALIZAR",
+							"PAINEL_GERENCIAL_VISUALIZAR"),
+					pm);
+			criarPerfil(perfis, "LABORATORIO", "Laboratório", "Consulta de pacientes e gerenciamento de exames",
+					Set.of("PACIENTE_VISUALIZAR", "ATENDIMENTO_VISUALIZAR", "EXAME_GERENCIAR"), pm);
+			criarPerfil(perfis, "FARMACIA", "Farmácia", "Consulta de pacientes e prescrições",
+					Set.of("PACIENTE_VISUALIZAR", "ATENDIMENTO_VISUALIZAR", "PRESCRICAO_GERENCIAR"), pm);
+
+			Perfil adminPerfil = perfis.findByCodigo("ADMIN").orElseThrow();
+			Usuario admin = usuarios.findByEmailIgnoreCase("admin@hospital.local")
+					.orElseGet(() -> Usuario.builder().nome("Administrador").email("admin@hospital.local")
+							.senha(encoder.encode("Admin@123")).role(Role.ADMIN).ativo(true).build());
+			if (admin.getPerfis() == null)
+				admin.setPerfis(new LinkedHashSet<>());
+			admin.getPerfis().add(adminPerfil);
+			admin.setRole(Role.ADMIN);
+			usuarios.save(admin);
+
+			// Migra usuários das versões anteriores, preservando o role legado como perfil.
+			for (Usuario u : usuarios.findAll()) {
+				if (u.getPerfis() == null || u.getPerfis().isEmpty()) {
+					String codigo = u.getRole() == null ? "RECEPCAO" : u.getRole().name();
+					perfis.findByCodigo(codigo).ifPresent(p -> u.setPerfis(new LinkedHashSet<>(Set.of(p))));
+					usuarios.save(u);
+				}
+			}
+
+			if (profissionais.count() == 0) {
+				profissionais.save(Profissional.builder().nome("Dra. Ana Souza").registro("CRM-12345")
+						.especialidade("Clínica Médica").email("ana@hospital.local").ativo(true).build());
+				profissionais.save(Profissional.builder().nome("Dr. Carlos Lima").registro("CRM-67890")
+						.especialidade("Cardiologia").email("carlos@hospital.local").ativo(true).build());
+			}
+			if (pacientes.count() == 0) {
+				pacientes.save(Paciente.builder().nome("Paciente Demonstração").cpf("00000000000")
+						.dataNascimento(LocalDate.of(1990, 1, 1)).sexo(Sexo.NAO_INFORMADO).telefone("(00) 00000-0000")
+						.tipoSanguineo("O+").build());
+			}
+		};
+	}
+
+	private static void criarPerfil(PerfilRepository repo, String codigo, String nome, String descricao,
+			Collection<String> codigos, Map<String, Permissao> mapa) {
+		Perfil p = repo.findByCodigo(codigo).orElseGet(Perfil::new);
+		p.setCodigo(codigo);
+		p.setNome(nome);
+		p.setDescricao(descricao);
+		LinkedHashSet<Permissao> set = new LinkedHashSet<>();
+		codigos.stream().sorted().map(mapa::get).filter(Objects::nonNull).forEach(set::add);
+		p.setPermissoes(set);
+		repo.save(p);
+	}
+}

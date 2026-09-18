@@ -1,0 +1,133 @@
+package br.com.portal.projeto.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+import br.com.portal.projeto.service.CustomUserDetailsService;
+import lombok.RequiredArgsConstructor;
+
+@Configuration
+@EnableMethodSecurity
+public class SecurityConfig {
+
+	private final CustomUserDetailsService userDetailsService;
+
+	@Bean
+	PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+	@Bean
+	DaoAuthenticationProvider authenticationProvider() {
+
+		DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+
+		provider.setUserDetailsService(userDetailsService);
+		provider.setPasswordEncoder(passwordEncoder());
+
+		return provider;
+	}
+
+	@Bean
+	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+		http.authenticationProvider(authenticationProvider())
+
+				.authorizeHttpRequests(auth -> auth
+
+						/*
+						 * Recursos públicos
+						 */
+						.requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/login", "/error")
+						.permitAll()
+
+						/*
+						 * Administração / RBAC
+						 */
+						.requestMatchers("/admin/**").hasRole("ADMIN")
+
+						/*
+						 * PACIENTES
+						 */
+						.requestMatchers("/pacientes/novo", "/pacientes/salvar", "/pacientes/*/editar",
+								"/pacientes/*/excluir")
+						.hasAuthority("PACIENTE_EDITAR")
+
+						.requestMatchers("/pacientes/**").hasAuthority("PACIENTE_VISUALIZAR")
+
+						/*
+						 * AGENDAMENTOS
+						 */
+						.requestMatchers("/agendamentos/novo", "/agendamentos/salvar", "/agendamentos/*/editar",
+								"/agendamentos/*/status", "/agendamentos/*/cancelar")
+						.hasAuthority("AGENDAMENTO_EDITAR")
+
+						.requestMatchers("/agendamentos/**").hasAuthority("AGENDAMENTO_VISUALIZAR")
+
+						/*
+						 * FILA DE SENHAS
+						 */
+						.requestMatchers("/fila-senhas/chamar/**", "/fila-senhas/chamar-proxima",
+								"/fila-senhas/*/chamar", "/fila-senhas/*/iniciar", "/fila-senhas/*/finalizar",
+								"/fila-senhas/*/cancelar")
+						.hasAuthority("FILA_CHAMAR")
+
+						.requestMatchers("/fila-senhas/nova", "/fila-senhas/emitir", "/fila-senhas/salvar")
+						.hasAuthority("FILA_EMITIR")
+
+						.requestMatchers("/fila-senhas/**").hasAuthority("FILA_VISUALIZAR")
+
+						/*
+						 * CLASSIFICAÇÃO DE RISCO
+						 */
+						.requestMatchers("/classificacao-risco/**").hasAuthority("RISCO_CLASSIFICAR")
+
+						/*
+						 * PRESCRIÇÕES
+						 */
+						.requestMatchers("/atendimentos/*/prescricoes/**").hasAuthority("PRESCRICAO_GERENCIAR")
+
+						/*
+						 * EXAMES
+						 */
+						.requestMatchers("/atendimentos/*/exames/**").hasAuthority("EXAME_GERENCIAR")
+
+						/*
+						 * ATENDIMENTOS
+						 */
+						.requestMatchers("/atendimentos/novo", "/atendimentos/salvar", "/atendimentos/*/editar",
+								"/atendimentos/*/finalizar")
+						.hasAuthority("ATENDIMENTO_EDITAR")
+
+						.requestMatchers("/atendimentos/**").hasAuthority("ATENDIMENTO_VISUALIZAR")
+
+						/*
+						 * Qualquer outra página precisa de autenticação
+						 */
+						.anyRequest().authenticated())
+
+				/*
+				 * LOGIN
+				 */
+				.formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/", true).failureUrl("/login?erro")
+						.permitAll())
+
+				/*
+				 * ACESSO NEGADO
+				 */
+				.exceptionHandling(exception -> exception.accessDeniedPage("/acesso-negado"))
+
+				/*
+				 * LOGOUT
+				 */
+				.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout")
+						.invalidateHttpSession(true).clearAuthentication(true).permitAll());
+
+		return http.build();
+	}

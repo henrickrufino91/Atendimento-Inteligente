@@ -1,0 +1,53 @@
+package br.com.portal.projeto.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import br.com.portal.projeto.entity.Profissional;
+import br.com.portal.projeto.repository.PacienteRepository;
+import br.com.portal.projeto.repository.ProfissionalRepository;
+
+@Controller
+@RequestMapping("/profissionais")
+public class ProfissionalController {
+	private final ProfissionalRepository repo;
+	private final PacienteRepository pacientes;
+	private final ProfissionalRepository profissionais;
+
+	public ProfissionalController(ProfissionalRepository r, PacienteRepository p, ProfissionalRepository pr) {
+		repo = r;
+		pacientes = p;
+		profissionais = pr;
+	}
+
+	@GetMapping
+	public String lista(Model m) {
+		m.addAttribute("itens", repo.findAll());
+		return "profissionais/lista";
+	}
+
+	@GetMapping("/novo")
+	public String novo(Model m) {
+		m.addAttribute("item", new Profissional());
+		m.addAttribute("pacientes", pacientes.findAll());
+		m.addAttribute("profissionais", profissionais.findAll());
+		return "profissionais/form";
+	}
+
+	@PostMapping("/salvar")
+	public String salvar(@ModelAttribute Profissional x) {
+		repo.save(x);
+		return "redirect:/profissionais";
+	}
+
+	@PostMapping("/{id}/excluir")
+	public String excluir(@PathVariable Long id) {
+		repo.deleteById(id);
+		return "redirect:/profissionais";
+	}
+}

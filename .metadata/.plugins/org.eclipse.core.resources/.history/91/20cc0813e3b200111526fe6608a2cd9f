@@ -1,0 +1,17 @@
+package br.com.hospital.atendimento.controller;
+import br.com.hospital.atendimento.model.*; import br.com.hospital.atendimento.repository.*;
+import org.springframework.stereotype.Controller; import org.springframework.ui.Model; import org.springframework.web.bind.annotation.*; import java.time.LocalDateTime;
+@Controller @RequestMapping("/atendimentos")
+public class AtendimentoController {
+ private final AtendimentoRepository repo; private final PacienteRepository pacientes; private final ProfissionalRepository profissionais;
+ private final TriagemRepository triagens; private final EvolucaoAtendimentoRepository evolucoes; private final EncaminhamentoRepository encaminhamentos; private final HistoricoStatusAtendimentoRepository historicos;
+ public AtendimentoController(AtendimentoRepository r,PacienteRepository p,ProfissionalRepository pr,TriagemRepository t,EvolucaoAtendimentoRepository e,EncaminhamentoRepository en,HistoricoStatusAtendimentoRepository h){repo=r;pacientes=p;profissionais=pr;triagens=t;evolucoes=e;encaminhamentos=en;historicos=h;}
+ @GetMapping public String lista(Model m){m.addAttribute("itens",repo.findAll());return "atendimentos/lista";}
+ @GetMapping("/novo") public String novo(Model m){m.addAttribute("item",new Atendimento());m.addAttribute("pacientes",pacientes.findAll());m.addAttribute("profissionais",profissionais.findAll());return "atendimentos/form";}
+ @PostMapping("/salvar") public String salvar(@ModelAttribute Atendimento x){x=repo.save(x);HistoricoStatusAtendimento h=new HistoricoStatusAtendimento();h.setAtendimento(x);h.setStatus(x.getStatus());h.setObservacao("Atendimento registrado");historicos.save(h);return "redirect:/atendimentos";}
+ @GetMapping("/{id}") public String detalhe(@PathVariable Long id,Model m){var a=repo.findById(id).orElseThrow();m.addAttribute("item",a);m.addAttribute("triagens",triagens.findAll().stream().filter(t->t.getPaciente().getId().equals(a.getPaciente().getId())).toList());m.addAttribute("evolucoes",evolucoes.findAll().stream().filter(e->e.getAtendimento().getId().equals(id)).toList());m.addAttribute("encaminhamentos",encaminhamentos.findAll().stream().filter(e->e.getAtendimento().getId().equals(id)).toList());return "atendimentos/detalhe";}
+ @PostMapping("/{id}/evolucao") public String evolucao(@PathVariable Long id,@RequestParam String descricao){EvolucaoAtendimento e=new EvolucaoAtendimento();e.setAtendimento(repo.findById(id).orElseThrow());e.setDescricao(descricao);evolucoes.save(e);return "redirect:/atendimentos/"+id;}
+ @PostMapping("/{id}/encaminhamento") public String encaminhar(@PathVariable Long id,@RequestParam String destino,@RequestParam String motivo){Encaminhamento e=new Encaminhamento();e.setAtendimento(repo.findById(id).orElseThrow());e.setDestino(destino);e.setMotivo(motivo);encaminhamentos.save(e);return "redirect:/atendimentos/"+id;}
+ @PostMapping("/{id}/finalizar") public String finalizar(@PathVariable Long id){var a=repo.findById(id).orElseThrow();a.setStatus(StatusAtendimento.FINALIZADO);a.setFinalizadoEm(LocalDateTime.now());repo.save(a);HistoricoStatusAtendimento h=new HistoricoStatusAtendimento();h.setAtendimento(a);h.setStatus(a.getStatus());h.setObservacao("Atendimento finalizado");historicos.save(h);return "redirect:/atendimentos/"+id;}
+ @PostMapping("/{id}/excluir") public String excluir(@PathVariable Long id){repo.deleteById(id);return "redirect:/atendimentos";}
+}

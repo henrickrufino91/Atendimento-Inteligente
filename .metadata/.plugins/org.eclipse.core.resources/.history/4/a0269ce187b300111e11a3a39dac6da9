@@ -1,0 +1,16 @@
+package br.com.hospital.model;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import lombok.*;
+
+@Entity @Table(name="profissional") @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Profissional {
+    @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+    @NotBlank @Column(nullable=false, length=150) private String nome;
+    @Column(nullable=false, unique=true, length=30) private String registro;
+    @Column(nullable=false, length=100) private String especialidade;
+    @Column(length=150) private String email;
+    @Column(length=20) private String telefone;
+    @Column(nullable=false) private boolean ativo = true;
+}

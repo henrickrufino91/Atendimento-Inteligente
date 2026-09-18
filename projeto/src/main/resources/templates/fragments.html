@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<nav th:fragment="nav" class="topbar">
+  <div class="nav-shell">
+    <a class="brand" th:href="@{/}">
+      <span class="brand-mark">H+</span>
+      <span class="brand-copy"><strong>Clinica Henrique</strong><small>Atendimento inteligente</small></span>
+    </a>
+
+    <button type="button" class="nav-toggle" aria-label="Abrir menu" aria-expanded="false" onclick="toggleMainMenu(this)">
+      <span></span><span></span><span></span>
+    </button>
+
+    <div class="links" id="main-nav">
+      <a class="nav-home nav-item" data-menu-path="/" th:href="@{/}">Home</a>
+
+      <details class="nav-group" sec:authorize="hasAnyAuthority('PACIENTE_VISUALIZAR','AGENDAMENTO_VISUALIZAR','FILA_VISUALIZAR')">
+        <summary>Atendimento <span class="chevron">⌄</span></summary>
+        <div class="nav-dropdown">
+          <div class="nav-section-title">Fluxo de entrada</div>
+          <a class="nav-item" data-menu-path="/fila-senhas" sec:authorize="hasAuthority('FILA_VISUALIZAR')" th:href="@{/fila-senhas}"><b>Fila de senhas</b><small>Emissão, chamada e acompanhamento</small></a>
+          <a class="nav-item" data-menu-path="/agendamentos" sec:authorize="hasAuthority('AGENDAMENTO_VISUALIZAR')" th:href="@{/agendamentos}"><b>Agendamentos</b><small>Agenda de consultas e retornos</small></a>
+          <a class="nav-item" data-menu-path="/pacientes" sec:authorize="hasAuthority('PACIENTE_VISUALIZAR')" th:href="@{/pacientes}"><b>Pacientes</b><small>Cadastro e consulta</small></a>
+        </div>
+      </details>
+
+      <details class="nav-group" sec:authorize="hasAnyAuthority('RISCO_CLASSIFICAR','ATENDIMENTO_VISUALIZAR')">
+        <summary>Clínico <span class="chevron">⌄</span></summary>
+        <div class="nav-dropdown">
+          <div class="nav-section-title">Assistência</div>
+          <a class="nav-item" data-menu-path="/classificacao-risco" sec:authorize="hasAuthority('RISCO_CLASSIFICAR')" th:href="@{/classificacao-risco}"><b>Classificação de risco</b><small>Triagem e priorização clínica</small></a>
+          <a class="nav-item" data-menu-path="/atendimentos" sec:authorize="hasAuthority('ATENDIMENTO_VISUALIZAR')" th:href="@{/atendimentos}"><b>Atendimentos</b><small>Prontuário e histórico clínico</small></a>
+        </div>
+      </details>
+
+      <details class="nav-group" sec:authorize="hasAnyAuthority('RELATORIO_VISUALIZAR','PAINEL_GERENCIAL_VISUALIZAR')">
+        <summary>Gestão <span class="chevron">⌄</span></summary>
+        <div class="nav-dropdown nav-dropdown-right">
+          <div class="nav-section-title">Indicadores e decisão</div>
+          <a class="nav-item" data-menu-path="/relatorios" data-exact-exclude="/relatorios/tempo-real" sec:authorize="hasAuthority('RELATORIO_VISUALIZAR')" th:href="@{/relatorios}"><b>Relatórios e indicadores</b><small>Análises, gráficos e exportações</small></a>
+          <a class="nav-item" data-menu-path="/relatorios/tempo-real" sec:authorize="hasAuthority('PAINEL_GERENCIAL_VISUALIZAR')" th:href="@{/relatorios/tempo-real}"><b>Painel em tempo real</b><small>Operação atualizada automaticamente</small></a>
+        </div>
+      </details>
+
+      <details class="nav-group admin-group" sec:authorize="hasRole('ADMIN')">
+        <summary>Administração <span class="chevron">⌄</span></summary>
+        <div class="nav-dropdown nav-dropdown-right">
+          <div class="nav-section-title">Acesso e segurança</div>
+          <a class="nav-item" data-menu-path="/admin/usuarios" th:href="@{/admin/usuarios}"><b>Usuários</b><small>Contas, status e perfis</small></a>
+          <a class="nav-item" data-menu-path="/admin/perfis" th:href="@{/admin/perfis}"><b>Perfis e permissões</b><small>Controle de acesso por função</small></a>
+        </div>
+      </details>
+
+      <div class="nav-divider"></div>
+      <form class="logout-form" th:action="@{/logout}" method="post"><button class="linkbtn">Sair</button></form>
+    </div>
+  </div>
+
+  <script th:inline="javascript">
+    function toggleMainMenu(button) {
+      const nav = document.getElementById('main-nav');
+      const opened = nav.classList.toggle('open');
+      button.setAttribute('aria-expanded', opened ? 'true' : 'false');
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      const path = window.location.pathname;
+      let best = null;
+      document.querySelectorAll('[data-menu-path]').forEach(function (item) {
+        const base = item.dataset.menuPath;
+        const excluded = item.dataset.exactExclude;
+        const matches = base === '/' ? path === '/' : path === base || path.startsWith(base + '/');
+        if (matches && (!excluded || !(path === excluded || path.startsWith(excluded + '/')))) {
+          if (!best || base.length > best.dataset.menuPath.length) best = item;
+        }
+      });
+      if (best) {
+        best.classList.add('active');
+        const group = best.closest('details.nav-group');
+        if (group) group.classList.add('active-group');
+      }
+
+      document.querySelectorAll('.nav-group').forEach(function (group) {
+        group.addEventListener('toggle', function () {
+          if (!group.open || window.innerWidth <= 900) return;
+          document.querySelectorAll('.nav-group[open]').forEach(function (other) {
+            if (other !== group) other.removeAttribute('open');
+          });
+        });
+      });
+    });
+  </script>
+</nav>
+</body>
+</html>

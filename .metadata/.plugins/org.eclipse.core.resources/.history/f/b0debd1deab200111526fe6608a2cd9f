@@ -1,0 +1,15 @@
+package br.com.hospital.repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import br.com.portal.projeto.entity.Agendamento;
+import br.com.portal.projeto.entity.StatusAgendamento;
+
+public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
+	List<Agendamento> findByDataHoraBetweenOrderByDataHora(LocalDateTime inicio, LocalDateTime fim);
+
+	long countByStatus(StatusAgendamento status);
+}

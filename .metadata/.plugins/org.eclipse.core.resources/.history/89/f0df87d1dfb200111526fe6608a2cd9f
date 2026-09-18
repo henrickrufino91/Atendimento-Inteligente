@@ -1,0 +1,17 @@
+package br.com.hospital.atendimento.service;
+import br.com.hospital.atendimento.model.*; import br.com.hospital.atendimento.repository.*;
+import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional; import java.time.*; import java.util.*;
+@Service
+public class FilaService {
+ private final SenhaAtendimentoRepository repo; private final PacienteRepository pacientes;
+ public FilaService(SenhaAtendimentoRepository repo, PacienteRepository pacientes){this.repo=repo;this.pacientes=pacientes;}
+ @Transactional public SenhaAtendimento emitir(PrioridadeSenha prioridade, Long pacienteId){
+  LocalDate hoje=LocalDate.now(); long seq=repo.findByDataOrderByPrioridadeDescCriadaEmAsc(hoje).size()+1;
+  SenhaAtendimento s=new SenhaAtendimento(); s.setPrioridade(prioridade); s.setCodigo((prioridade==PrioridadeSenha.PRIORITARIA?"P":"N")+String.format("%03d",seq));
+  if(pacienteId!=null) pacientes.findById(pacienteId).ifPresent(s::setPaciente); return repo.save(s);
+ }
+ @Transactional public void chamar(Long id,String guiche){ var s=repo.findById(id).orElseThrow(); s.setStatus(StatusSenha.CHAMADA);s.setGuiche(guiche);s.setChamadaEm(LocalDateTime.now());}
+ @Transactional public void iniciar(Long id){ repo.findById(id).ifPresent(s->s.setStatus(StatusSenha.EM_ATENDIMENTO)); }
+ @Transactional public void finalizar(Long id){ repo.findById(id).ifPresent(s->{s.setStatus(StatusSenha.FINALIZADA);s.setFinalizadaEm(LocalDateTime.now());});}
+ public List<SenhaAtendimento> hoje(){return repo.findByDataOrderByPrioridadeDescCriadaEmAsc(LocalDate.now());}
+}

@@ -1,0 +1,8 @@
+package br.com.hospital.repository;
+import br.com.hospital.model.Permissao;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.*;
+public interface PermissaoRepository extends JpaRepository<Permissao,Long>{
+ Optional<Permissao> findByCodigo(String codigo);
+ List<Permissao> findAllByOrderByCodigoAsc();
+}

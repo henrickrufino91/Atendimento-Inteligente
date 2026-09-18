@@ -1,0 +1,15 @@
+package br.com.hospital.atendimento.controller;
+import br.com.hospital.atendimento.repository.*; import com.lowagie.text.*; import com.lowagie.text.pdf.PdfWriter;
+import jakarta.servlet.http.HttpServletResponse; import org.springframework.stereotype.Controller; import org.springframework.ui.Model; import org.springframework.web.bind.annotation.*; import java.io.IOException; import java.time.*;
+@Controller @RequestMapping("/relatorios")
+public class RelatorioController {
+ private final PacienteRepository p; private final AtendimentoRepository a; private final SenhaAtendimentoRepository s;
+ public RelatorioController(PacienteRepository p,AtendimentoRepository a,SenhaAtendimentoRepository s){this.p=p;this.a=a;this.s=s;}
+ @GetMapping public String painel(Model m){m.addAttribute("pacientes",p.count());m.addAttribute("atendimentos",a.count());m.addAttribute("senhasHoje",s.findByDataOrderByPrioridadeDescCriadaEmAsc(LocalDate.now()).size());return "relatorios/painel";}
+ @GetMapping("/mensal.pdf") public void pdf(HttpServletResponse r) throws IOException {
+  r.setContentType("application/pdf");r.setHeader("Content-Disposition","attachment; filename=relatorio-mensal.pdf");
+  Document d=new Document(); PdfWriter.getInstance(d,r.getOutputStream()); d.open();
+  d.add(new Paragraph("Relatório Mensal - Atendimento Inteligente"));d.add(new Paragraph("Competência: "+YearMonth.now()));
+  d.add(new Paragraph("Pacientes cadastrados: "+p.count()));d.add(new Paragraph("Atendimentos registrados: "+a.count()));d.close();
+ }
+}

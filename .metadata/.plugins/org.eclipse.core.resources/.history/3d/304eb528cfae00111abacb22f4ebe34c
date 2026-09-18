@@ -1,0 +1,119 @@
+package br.com.hospital.service;
+
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.com.hospital.dto.*;
+import br.com.hospital.model.*;
+import br.com.hospital.repository.*;
+import br.com.portal.projeto.entity.Perfil;
+import br.com.portal.projeto.entity.Permissao;
+import br.com.portal.projeto.entity.Usuario;
+import br.com.portal.projeto.entity.enums.Role;
+import br.com.portal.projeto.repository.PerfilRepository;
+import br.com.portal.projeto.repository.PermissaoRepository;
+import br.com.portal.projeto.repository.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class RbacService {
+	
+	private final UsuarioRepository usuarios;
+	private final PerfilRepository perfis;
+	private final PermissaoRepository permissoes;
+	private final PasswordEncoder encoder;
+
+	public List<Usuario> listarUsuarios() {
+		return usuarios.findAllByOrderByNomeAsc();
+	}
+
+	public List<Perfil> listarPerfis() {
+		return perfis.findAllByOrderByNomeAsc();
+	}
+
+	public List<Permissao> listarPermissoes() {
+		return permissoes.findAllByOrderByCodigoAsc();
+	}
+
+	public Usuario obterUsuario(Long id) {
+		return usuarios.findById(id).orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+	}
+
+	public Perfil obterPerfil(Long id) {
+		return perfis.findById(id).orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado"));
+	}
+
+	public UsuarioForm formUsuario(Usuario u) {
+		return UsuarioForm.builder().id(u.getId()).nome(u.getNome()).email(u.getEmail()).ativo(u.isAtivo())
+				.perfilIds(u.getPerfis().stream().map(Perfil::getId).toList()).build();
+	}
+
+	public PerfilForm formPerfil(Perfil p) {
+		return PerfilForm.builder().id(p.getId()).codigo(p.getCodigo()).nome(p.getNome()).descricao(p.getDescricao())
+				.permissaoIds(p.getPermissoes().stream().map(Permissao::getId).toList()).build();
+	}
+
+	@Transactional
+	public Usuario salvarUsuario(UsuarioForm f) {
+		Usuario u = f.getId() == null ? new Usuario() : obterUsuario(f.getId());
+		boolean emailDuplicado = f.getId() == null ? usuarios.existsByEmailIgnoreCase(f.getEmail())
+				: usuarios.existsByEmailIgnoreCaseAndIdNot(f.getEmail(), f.getId());
+		if (emailDuplicado)
+			throw new IllegalArgumentException("Já existe usuário com este e-mail.");
+		if (f.getId() == null && (f.getSenha() == null || f.getSenha().isBlank()))
+			throw new IllegalArgumentException("Informe a senha para o novo usuário.");
+		if (f.getPerfilIds() == null || f.getPerfilIds().isEmpty())
+			throw new IllegalArgumentException("Selecione ao menos um perfil.");
+
+		u.setNome(f.getNome().trim());
+		u.setEmail(f.getEmail().trim().toLowerCase(Locale.ROOT));
+		u.setAtivo(f.isAtivo());
+		if (f.getSenha() != null && !f.getSenha().isBlank())
+			u.setSenha(encoder.encode(f.getSenha()));
+		LinkedHashSet<Perfil> selecionados = new LinkedHashSet<>(perfis.findAllById(f.getPerfilIds()));
+		if (selecionados.size() != new HashSet<>(f.getPerfilIds()).size())
+			throw new IllegalArgumentException("Um dos perfis selecionados não existe.");
+		u.setPerfis(selecionados);
+		u.setRole(roleLegado(selecionados));
+		return usuarios.save(u);
+	}
+
+	@Transactional
+	public Perfil salvarPerfil(PerfilForm f) {
+		Perfil p = f.getId() == null ? new Perfil() : obterPerfil(f.getId());
+		String codigo = f.getCodigo().trim().toUpperCase(Locale.ROOT);
+		perfis.findByCodigo(codigo).filter(x -> !Objects.equals(x.getId(), f.getId())).ifPresent(x -> {
+			throw new IllegalArgumentException("Já existe perfil com este código.");
+		});
+		p.setCodigo(codigo);
+		p.setNome(f.getNome().trim());
+		p.setDescricao(f.getDescricao());
+		List<Long> ids = f.getPermissaoIds() == null ? List.of() : f.getPermissaoIds();
+		LinkedHashSet<Permissao> selecionadas = new LinkedHashSet<>(permissoes.findAllById(ids));
+		if (selecionadas.size() != new HashSet<>(ids).size())
+			throw new IllegalArgumentException("Uma das permissões selecionadas não existe.");
+		p.setPermissoes(selecionadas);
+		return perfis.save(p);
+	}
+
+	private Role roleLegado(Set<Perfil> perfis) {
+		List<String> ordem = List.of("ADMIN", "MEDICO", "ENFERMAGEM", "RECEPCAO", "LABORATORIO", "FARMACIA");
+		for (String c : ordem) {
+			if (perfis.stream().anyMatch(p -> c.equals(p.getCodigo()))) {
+				try {
+					return Role.valueOf(c);
+				} catch (Exception ignored) {
+				}
+			}
+		}
+		return Role.RECEPCAO;
+	}
+}

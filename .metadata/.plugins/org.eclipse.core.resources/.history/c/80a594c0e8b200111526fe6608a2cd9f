@@ -1,0 +1,79 @@
+package br.com.portal.projeto.service;
+
+import java.time.LocalDateTime;
+
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.com.portal.projeto.entity.AuditoriaUsuario;
+import br.com.portal.projeto.entity.Usuario;
+import br.com.portal.projeto.repository.AuditoriaUsuarioRepository;
+import br.com.portal.projeto.repository.UsuarioRepository;
+
+@Service
+public class UsuarioService {
+	private final UsuarioRepository repo;
+	private final PasswordEncoder encoder;
+	private final AuditoriaUsuarioRepository audit;
+
+	public UsuarioService(UsuarioRepository r, PasswordEncoder e, AuditoriaUsuarioRepository a) {
+		repo = r;
+		encoder = e;
+		audit = a;
+	}
+
+	private String ator() {
+		var a = SecurityContextHolder.getContext().getAuthentication();
+		return a == null ? "SISTEMA" : a.getName();
+	}
+
+	private void senhaValida(String s) {
+		if (s == null || s.length() < 8 || !s.matches(".*[A-Z].*") || !s.matches(".*[a-z].*") || !s.matches(".*\\d.*"))
+			throw new IllegalArgumentException("Senha deve ter ao menos 8 caracteres, maiúscula, minúscula e número.");
+	}
+
+	@Transactional
+	public Usuario salvar(Usuario u, String novaSenha) {
+		boolean novo = u.getId() == null;
+		if (!novo) {
+			var atual = repo.findById(u.getId()).orElseThrow();
+			u.setSenha(atual.getSenha());
+			u.setCriadoEm(atual.getCriadoEm());
+			u.setUltimaTrocaSenha(atual.getUltimaTrocaSenha());
+		}
+		if (novo || novaSenha != null && !novaSenha.isBlank()) {
+			senhaValida(novaSenha);
+			u.setSenha(encoder.encode(novaSenha));
+			u.setUltimaTrocaSenha(LocalDateTime.now());
+		}
+		var salvo = repo.save(u);
+		audit.save(new AuditoriaUsuario(ator(), novo ? "CRIAR_USUARIO" : "ALTERAR_USUARIO", "Usuario",
+				salvo.getId().toString(), "Conta " + salvo.getEmail()));
+		return salvo;
+	}
+
+	@Transactional
+	public void alternar(Long id) {
+		var u = repo.findById(id).orElseThrow();
+		if (u.isAtivo() && u.getPerfis().stream().anyMatch(p -> p.getNome().equals("ADMIN"))) {
+			long admins = repo.findAll().stream()
+					.filter(x -> x.isAtivo() && x.getPerfis().stream().anyMatch(p -> p.getNome().equals("ADMIN")))
+					.count();
+			if (admins <= 1)
+				throw new IllegalStateException("O último administrador ativo não pode ser desativado.");
+		}
+		u.setAtivo(!u.isAtivo());
+		audit.save(new AuditoriaUsuario(ator(), "ALTERAR_STATUS", "Usuario", id.toString(), "Ativo=" + u.isAtivo()));
+	}
+
+	@Transactional
+	public void desbloquear(Long id) {
+		var u = repo.findById(id).orElseThrow();
+		u.setBloqueado(false);
+		u.setTentativasFalhas(0);
+		u.setBloqueadoAte(null);
+		audit.save(new AuditoriaUsuario(ator(), "DESBLOQUEAR", "Usuario", id.toString(), u.getEmail()));
+	}
+}

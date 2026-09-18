@@ -1,0 +1,6 @@
+package br.com.hospital.atendimento.repository;
+import br.com.hospital.atendimento.model.*; import org.springframework.data.jpa.repository.JpaRepository;
+public interface SenhaAtendimentoRepository extends JpaRepository<SenhaAtendimento,Long> {
+ java.util.List<SenhaAtendimento> findByDataOrderByPrioridadeDescCriadaEmAsc(java.time.LocalDate data);
+ long countByDataAndStatus(java.time.LocalDate data, StatusSenha status);
+}

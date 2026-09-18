@@ -1,0 +1,14 @@
+package br.com.hospital.repository;
+
+import br.com.hospital.model.ClassificacaoRisco;
+import br.com.hospital.model.NivelRisco;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+public interface ClassificacaoRiscoRepository extends JpaRepository<ClassificacaoRisco, Long> {
+    Optional<ClassificacaoRisco> findBySenhaId(Long senhaId);
+    long countByNivelFinalAndClassificadoEmBetween(NivelRisco nivel, LocalDateTime inicio, LocalDateTime fim);
+    List<ClassificacaoRisco> findTop20ByOrderByClassificadoEmDesc();
+}

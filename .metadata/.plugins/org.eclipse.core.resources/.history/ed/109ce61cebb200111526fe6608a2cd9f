@@ -1,0 +1,213 @@
+package br.com.portal.projeto.service;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
+import br.com.portal.projeto.dto.IndicadorDia;
+import br.com.portal.projeto.dto.IndicadorProfissional;
+import br.com.portal.projeto.dto.IndicadorRisco;
+import br.com.portal.projeto.dto.IndicadoresTempoReal;
+import br.com.portal.projeto.dto.RelatorioIndicadores;
+import br.com.portal.projeto.entity.Atendimento;
+import br.com.portal.projeto.entity.ClassificacaoRisco;
+import br.com.portal.projeto.entity.NivelRisco;
+import br.com.portal.projeto.entity.SenhaAtendimento;
+import br.com.portal.projeto.entity.StatusSenha;
+import br.com.portal.projeto.repository.AtendimentoRepository;
+import br.com.portal.projeto.repository.ClassificacaoRiscoRepository;
+import br.com.portal.projeto.repository.SenhaAtendimentoRepository;
+import lombok.RequiredArgsConstructor;
+
+import java.util.stream.Collectors;
+@Service
+@RequiredArgsConstructor
+public class RelatorioService {
+	private final SenhaAtendimentoRepository senhas;
+	private final AtendimentoRepository atendimentos;
+	private final ClassificacaoRiscoRepository classificacoes;
+
+	public RelatorioIndicadores gerar(LocalDate inicio, LocalDate fim) {
+		if (inicio == null)
+			inicio = LocalDate.now().minusDays(29);
+		if (fim == null)
+			fim = LocalDate.now();
+		if (fim.isBefore(inicio)) {
+			LocalDate tmp = inicio;
+			inicio = fim;
+			fim = tmp;
+		}
+
+		LocalDateTime de = inicio.atStartOfDay();
+		LocalDateTime ate = fim.plusDays(1).atStartOfDay();
+
+		List<SenhaAtendimento> listaSenhas = senhas.findAll().stream().filter(
+				s -> s.getEmitidaEm() != null && !s.getEmitidaEm().isBefore(de) && s.getEmitidaEm().isBefore(ate))
+				.toList();
+		List<Atendimento> listaAtendimentos = atendimentos.findAll().stream()
+				.filter(a -> a.getInicio() != null && !a.getInicio().isBefore(de) && a.getInicio().isBefore(ate))
+				.toList();
+		List<ClassificacaoRisco> listaClassificacoes = classificacoes.findAll().stream()
+				.filter(c -> c.getClassificadoEm() != null && !c.getClassificadoEm().isBefore(de)
+						&& c.getClassificadoEm().isBefore(ate))
+				.toList();
+
+		long finalizadas = listaSenhas.stream().filter(s -> s.getStatus() == StatusSenha.FINALIZADA).count();
+		long canceladas = listaSenhas.stream().filter(s -> s.getStatus() == StatusSenha.CANCELADA).count();
+		long aguardando = listaSenhas.stream()
+				.filter(s -> s.getStatus() == StatusSenha.AGUARDANDO || s.getStatus() == StatusSenha.CHAMADA).count();
+		long atFinalizados = listaAtendimentos.stream().filter(a -> a.getFim() != null).count();
+
+		double espera = mediaMinutos(
+				listaSenhas.stream().filter(s -> s.getEmitidaEm() != null && s.getChamadaEm() != null)
+						.map(s -> Duration.between(s.getEmitidaEm(), s.getChamadaEm()).toMinutes()).filter(v -> v >= 0)
+						.toList());
+		double duracao = mediaMinutos(listaAtendimentos.stream()
+				.filter(a -> a.getInicio() != null && a.getFim() != null)
+				.map(a -> Duration.between(a.getInicio(), a.getFim()).toMinutes()).filter(v -> v >= 0).toList());
+
+		List<IndicadorRisco> riscos = new ArrayList<>();
+		long totalSlaAvaliavel = 0, totalDentro = 0;
+		for (NivelRisco nivel : NivelRisco.values()) {
+			List<ClassificacaoRisco> doNivel = listaClassificacoes.stream().filter(c -> c.getNivelFinal() == nivel)
+					.toList();
+			long avaliaveis = 0, dentro = 0;
+			for (ClassificacaoRisco c : doNivel) {
+				SenhaAtendimento s = c.getSenha();
+				if (s != null && s.getChamadaEm() != null && c.getClassificadoEm() != null) {
+					avaliaveis++;
+					long minutos = Math.max(0, Duration.between(c.getClassificadoEm(), s.getChamadaEm()).toMinutes());
+					if (minutos <= nivel.getTempoAlvoMinutos())
+						dentro++;
+				}
+			}
+			totalSlaAvaliavel += avaliaveis;
+			totalDentro += dentro;
+			riscos.add(new IndicadorRisco(nivel, doNivel.size(), dentro, pct(dentro, avaliaveis)));
+		}
+
+		Map<LocalDate, Long> senhasDia = listaSenhas.stream()
+				.collect(Collectors.groupingBy(s -> s.getEmitidaEm().toLocalDate(), Collectors.counting()));
+		Map<LocalDate, Long> atendDia = listaAtendimentos.stream()
+				.collect(Collectors.groupingBy(a -> a.getInicio().toLocalDate(), Collectors.counting()));
+		List<IndicadorDia> serie = inicio.datesUntil(fim.plusDays(1))
+				.map(d -> new IndicadorDia(d, senhasDia.getOrDefault(d, 0L), atendDia.getOrDefault(d, 0L))).toList();
+
+		Map<String, List<Atendimento>> porProfissional = listaAtendimentos.stream().collect(Collectors
+				.groupingBy(a -> a.getProfissional() == null ? "Não informado" : a.getProfissional().getNome()));
+		List<IndicadorProfissional> profissionais = porProfissional.entrySet().stream()
+				.map(e -> new IndicadorProfissional(e.getKey(), e.getValue().size(),
+						e.getValue().stream().filter(a -> a.getFim() != null).count()))
+				.sorted(Comparator.comparingLong(IndicadorProfissional::atendimentos).reversed()).limit(10).toList();
+
+		return new RelatorioIndicadores(inicio, fim, listaSenhas.size(), finalizadas, canceladas, aguardando,
+				listaAtendimentos.size(), atFinalizados, espera, duracao, pct(finalizadas, listaSenhas.size()),
+				pct(totalDentro, totalSlaAvaliavel), riscos, serie, profissionais);
+	}
+
+	public IndicadoresTempoReal tempoReal() {
+		LocalDate hoje = LocalDate.now();
+		LocalDateTime de = hoje.atStartOfDay();
+		LocalDateTime ate = hoje.plusDays(1).atStartOfDay();
+		List<SenhaAtendimento> hojeSenhas = senhas.findAll().stream().filter(
+				s -> s.getEmitidaEm() != null && !s.getEmitidaEm().isBefore(de) && s.getEmitidaEm().isBefore(ate))
+				.toList();
+		List<Atendimento> hojeAt = atendimentos.findAll().stream()
+				.filter(a -> a.getInicio() != null && !a.getInicio().isBefore(de) && a.getInicio().isBefore(ate))
+				.toList();
+		List<ClassificacaoRisco> hojeCl = classificacoes.findAll().stream().filter(c -> c.getClassificadoEm() != null
+				&& !c.getClassificadoEm().isBefore(de) && c.getClassificadoEm().isBefore(ate)).toList();
+
+		long aguardando = hojeSenhas.stream().filter(s -> s.getStatus() == StatusSenha.AGUARDANDO).count();
+		long chamadas = hojeSenhas.stream().filter(s -> s.getStatus() == StatusSenha.CHAMADA).count();
+		long emAtendimento = hojeSenhas.stream().filter(s -> s.getStatus() == StatusSenha.EM_ATENDIMENTO).count();
+		long finalizadas = hojeSenhas.stream().filter(s -> s.getStatus() == StatusSenha.FINALIZADA).count();
+		long abertos = hojeAt.stream().filter(a -> a.getFim() == null).count();
+		double espera = mediaMinutos(hojeSenhas.stream().filter(s -> s.getChamadaEm() != null)
+				.map(s -> Duration.between(s.getEmitidaEm(), s.getChamadaEm()).toMinutes()).filter(v -> v >= 0)
+				.toList());
+
+		long avaliaveis = 0, dentro = 0;
+		List<IndicadorRisco> riscos = new ArrayList<>();
+		for (NivelRisco nivel : NivelRisco.values()) {
+			List<ClassificacaoRisco> lista = hojeCl.stream().filter(c -> c.getNivelFinal() == nivel).toList();
+			long av = 0, ok = 0;
+			for (ClassificacaoRisco c : lista) {
+				SenhaAtendimento ss = c.getSenha();
+				if (ss != null && ss.getChamadaEm() != null) {
+					av++;
+					long min = Math.max(0, Duration.between(c.getClassificadoEm(), ss.getChamadaEm()).toMinutes());
+					if (min <= nivel.getTempoAlvoMinutos())
+						ok++;
+				}
+			}
+			avaliaveis += av;
+			dentro += ok;
+			riscos.add(new IndicadorRisco(nivel, lista.size(), ok, pct(ok, av)));
+		}
+		Map<String, List<Atendimento>> pp = hojeAt.stream().collect(Collectors
+				.groupingBy(a -> a.getProfissional() == null ? "Nao informado" : a.getProfissional().getNome()));
+		List<IndicadorProfissional> profissionais = pp.entrySet().stream()
+				.map(e -> new IndicadorProfissional(e.getKey(), e.getValue().size(),
+						e.getValue().stream().filter(a -> a.getFim() != null).count()))
+				.sorted(Comparator.comparingLong(IndicadorProfissional::atendimentos).reversed()).limit(8).toList();
+		return new IndicadoresTempoReal(LocalDateTime.now(), aguardando, chamadas, emAtendimento, finalizadas, abertos,
+				espera, pct(dentro, avaliaveis), riscos, profissionais);
+	}
+
+	public String csvSenhas(LocalDate inicio, LocalDate fim) {
+		RelatorioIndicadores r = gerar(inicio, fim);
+		LocalDateTime de = r.inicio().atStartOfDay(), ate = r.fim().plusDays(1).atStartOfDay();
+		StringBuilder b = new StringBuilder(
+				"codigo;data;tipo;risco;status;paciente;emitida_em;chamada_em;finalizada_em;guiche\n");
+		senhas.findAll().stream().filter(
+				s -> s.getEmitidaEm() != null && !s.getEmitidaEm().isBefore(de) && s.getEmitidaEm().isBefore(ate))
+				.sorted(Comparator.comparing(SenhaAtendimento::getEmitidaEm))
+				.forEach(s -> b.append(csv(s.getCodigo())).append(';').append(s.getDataReferencia()).append(';')
+						.append(s.getTipo()).append(';').append(n(s.getNivelRisco())).append(';').append(s.getStatus())
+						.append(';').append(csv(s.getPaciente() == null ? "" : s.getPaciente().getNome())).append(';')
+						.append(n(s.getEmitidaEm())).append(';').append(n(s.getChamadaEm())).append(';')
+						.append(n(s.getFinalizadaEm())).append(';').append(csv(s.getGuiche())).append('\n'));
+		return b.toString();
+	}
+
+	public String csvAtendimentos(LocalDate inicio, LocalDate fim) {
+		RelatorioIndicadores r = gerar(inicio, fim);
+		LocalDateTime de = r.inicio().atStartOfDay(), ate = r.fim().plusDays(1).atStartOfDay();
+		StringBuilder b = new StringBuilder(
+				"id;inicio;fim;paciente;profissional;classificacao;queixa_principal;diagnostico\n");
+		atendimentos.findAll().stream()
+				.filter(a -> a.getInicio() != null && !a.getInicio().isBefore(de) && a.getInicio().isBefore(ate))
+				.sorted(Comparator.comparing(Atendimento::getInicio))
+				.forEach(a -> b.append(a.getId()).append(';').append(n(a.getInicio())).append(';').append(n(a.getFim()))
+						.append(';').append(csv(a.getPaciente() == null ? "" : a.getPaciente().getNome())).append(';')
+						.append(csv(a.getProfissional() == null ? "" : a.getProfissional().getNome())).append(';')
+						.append(n(a.getClassificacao())).append(';').append(csv(a.getQueixaPrincipal())).append(';')
+						.append(csv(a.getDiagnostico())).append('\n'));
+		return b.toString();
+	}
+
+	private static double mediaMinutos(List<Long> valores) {
+		return valores.isEmpty() ? 0.0 : valores.stream().mapToLong(Long::longValue).average().orElse(0.0);
+	}
+
+	private static double pct(long parte, long total) {
+		return total == 0 ? 0.0 : (parte * 100.0 / total);
+	}
+
+	private static String n(Object o) {
+		return o == null ? "" : o.toString();
+	}
+
+	private static String csv(String s) {
+		if (s == null)
+			return "";
+		return '"' + s.replace("\"", "\"\"").replace("\n", " ").replace("\r", " ") + '"';
+	}
+}

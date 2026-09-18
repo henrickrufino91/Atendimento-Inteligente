@@ -1,0 +1,92 @@
+package br.com.portal.projeto.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import br.com.portal.projeto.entity.ClassificacaoRisco;
+import br.com.portal.projeto.entity.NivelRisco;
+import br.com.portal.projeto.service.ClassificacaoRiscoService;
+import br.com.portal.projeto.service.FilaSenhaService;
+import lombok.RequiredArgsConstructor;
+
+@Controller
+@RequestMapping("/classificacao-risco")
+@RequiredArgsConstructor
+public class ClassificacaoRiscoController {
+
+    private final ClassificacaoRiscoService classificacaoService;
+    private final FilaSenhaService filaSenhaService;
+
+    @GetMapping
+    public String listar(Model model) {
+        model.addAttribute(
+            "classificacoes",
+            classificacaoService.listarUltimas()
+        );
+
+        return "classificacao/lista";
+    }
+
+    // ABRE A TELA - GET
+    @GetMapping("/senha/{senhaId}")
+    public String formulario(
+            @PathVariable Long senhaId,
+            Model model) {
+
+        var senha = filaSenhaService.buscar(senhaId);
+
+        var classificacao =
+            classificacaoService.buscarPorSenha(senhaId)
+                .orElseGet(() -> {
+                    var nova = new ClassificacaoRisco();
+                    nova.setSenha(senha);
+                    nova.setPaciente(senha.getPaciente());
+                    return nova;
+                });
+
+        model.addAttribute("senha", senha);
+        model.addAttribute("classificacao", classificacao);
+        model.addAttribute("niveisRisco", NivelRisco.values());
+
+        return "classificacao/form";
+    }
+
+    // SALVA - POST
+    @PostMapping("/senha/{senhaId}")
+    public String salvar(
+            @PathVariable Long senhaId,
+            @ModelAttribute("classificacao")
+            ClassificacaoRisco classificacao,
+            RedirectAttributes redirect) {
+
+        try {
+            classificacaoService.salvar(
+                senhaId,
+                classificacao
+            );
+
+            redirect.addFlashAttribute(
+                "sucesso",
+                "Classificação de risco salva com sucesso."
+            );
+
+            return "redirect:/fila-senhas";
+
+        } catch (IllegalArgumentException e) {
+
+            redirect.addFlashAttribute(
+                "erro",
+                e.getMessage()
+            );
+
+            return "redirect:/classificacao-risco/senha/"
+                    + senhaId;
+        }
+    }
+}

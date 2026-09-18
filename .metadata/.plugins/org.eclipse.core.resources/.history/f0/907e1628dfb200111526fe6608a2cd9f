@@ -1,0 +1,10 @@
+package br.com.hospital.atendimento.model;
+import jakarta.persistence.*; import lombok.*; import java.time.*;
+@Entity @Getter @Setter @NoArgsConstructor
+public class Prescricao {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+ @ManyToOne(optional=false) private Paciente paciente;
+ @ManyToOne private Profissional profissional;
+ private LocalDateTime emitidaEm=LocalDateTime.now();
+ @Column(length=3000) private String descricao;
+}

@@ -1,0 +1,5 @@
+package br.com.hospital.atendimento.model;
+
+public enum StatusAtendimento {
+	ABERTO, EM_ATENDIMENTO, FINALIZADO, CANCELADO
+}

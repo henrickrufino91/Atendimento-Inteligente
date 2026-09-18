@@ -1,0 +1,93 @@
+package br.com.portal.projeto.entity;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import br.com.portal.projeto.entity.enums.StatusSenha;
+import br.com.portal.projeto.entity.enums.TipoSenha;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "senha_atendimento", uniqueConstraints = @UniqueConstraint(name = "uk_senha_dia_tipo_numero", columnNames = {
+		"data_referencia", "tipo", "numero" }))
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class SenhaAtendimento {
+	
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	
+	@Column(name = "data_referencia", nullable = false)
+	private LocalDate dataReferencia;
+	
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 20)
+	private TipoSenha tipo;
+	
+	@Column(nullable = false)
+	private Integer numero;
+	
+	@Column(nullable = false, length = 12)
+	private String codigo;
+	
+	@ManyToOne
+	@JoinColumn(name = "paciente_id")
+	private Paciente paciente;
+	
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 30)
+	private StatusSenha status;
+	
+	@Column(name = "emitida_em", nullable = false)
+	private LocalDateTime emitidaEm;
+	
+	@Column(name = "chamada_em")
+	private LocalDateTime chamadaEm;
+	
+	@Column(name = "iniciada_em")
+	private LocalDateTime iniciadaEm;
+	
+	@Column(name = "finalizada_em")
+	private LocalDateTime finalizadaEm;
+	
+	@Column(length = 30)
+	private String guiche;
+	
+	@Column(length = 255)
+	private String observacao;
+	
+	@OneToOne
+	@JoinColumn(name = "atendimento_id", unique = true)
+	private Atendimento atendimento;
+
+	@PrePersist
+	void prePersist() {
+		if (dataReferencia == null)
+			dataReferencia = LocalDate.now();
+		if (status == null)
+			status = StatusSenha.AGUARDANDO;
+		if (emitidaEm == null)
+			emitidaEm = LocalDateTime.now();
+	}
+}

@@ -1,0 +1,3 @@
+package br.com.portal.projeto.dto;
+
+public record IndicadorProfissional(String profissional, long atendimentos, long finalizados) {}

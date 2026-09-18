@@ -1,0 +1,8 @@
+package br.com.hospital.repository;
+import br.com.hospital.model.Perfil;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.*;
+public interface PerfilRepository extends JpaRepository<Perfil,Long>{
+ Optional<Perfil> findByCodigo(String codigo);
+ List<Perfil> findAllByOrderByNomeAsc();
+}

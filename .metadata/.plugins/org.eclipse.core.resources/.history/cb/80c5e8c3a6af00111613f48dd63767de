@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org"
+	xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Index</title>
+<link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+	<nav th:replace="~{fragments :: nav}"></nav>
+	<main class="container">
+		<div class="page-head">
+			<div>
+				<h1>Dasboard</h1>
+				<p>Visão geral da operação hospitalar</p>
+			</div>
+			<a sec:authorize="hasAuthority('ATENDIMENTO_EDITAR')"
+				class="primary btn" th:href="@{/atendimentos/novo}">Novo
+				atendimento</a>
+		</div>
+		<section class="cards dashboard-cards">
+			<div class="card">
+				<span>Pacientes</span><strong th:text="${pacientes}">0</strong>
+			</div>
+			<div class="card">
+				<span>Agenda hoje</span><strong th:text="${agendamentosHoje}">0</strong>
+			</div>
+			<div class="card">
+				<span>Atendimentos abertos</span><strong
+					th:text="${atendimentosAbertos}">0</strong>
+			</div>
+			<div class="card">
+				<span>Confirmados</span><strong th:text="${confirmados}">0</strong>
+			</div>
+			<div class="card">
+				<span>Senhas aguardando</span><strong th:text="${senhasAguardando}">0</strong><a
+					class="card-link" th:href="@{/fila-senhas}">Abrir fila</a>
+			</div>
+		</section>
+		<section class="panel">
+			<h2>Agenda de hoje</h2>
+			<table>
+				<thead>
+					<tr>
+						<th>Horário</th>
+						<th>Paciente</th>
+						<th>Profissional</th>
+						<th>Status</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr th:each="a:${agenda}">
+						<td th:text="${#temporals.format(a.dataHora,'HH:mm')}"></td>
+						<td th:text="${a.paciente.nome}"></td>
+						<td th:text="${a.profissional.nome}"></td>
+						<td><span class="badge" th:text="${a.status}"></span></td>
+					</tr>
+					<tr th:if="${#lists.isEmpty(agenda)}">
+						<td colspan="4">Nenhum agendamento hoje.</td>
+					</tr>
+				</tbody>
+			</table>
+		</section>
+	</main>
+</body>
+</html>

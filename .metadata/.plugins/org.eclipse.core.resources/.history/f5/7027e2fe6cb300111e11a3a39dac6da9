@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Perfis e permissões</title>
+<link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+	<nav th:replace="~{fragments :: nav}"></nav>
+	<main class="container">
+		<div class="page-head">
+			<div>
+				<h1>Perfis e permissões</h1>
+				<p>RBAC: agrupe permissões e atribua os perfis aos usuários.</p>
+			</div>
+			<a class="primary btn" th:href="@{/admin/perfis/novo}">Novo
+				perfil</a>
+		</div>
+		<div class="alert success" th:if="${sucesso}" th:text="${sucesso}"></div>
+		<section class="panel">
+			<table>
+				<thead>
+					<tr>
+						<th>Perfil</th>
+						<th>Código</th>
+						<th>Permissões</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr th:each="p:${perfis}">
+						<td><strong th:text="${p.nome}"></strong><br>
+						<small th:text="${p.descricao}"></small></td>
+						<td><code th:text="${p.codigo}"></code></td>
+						<td><span
+							th:text="${#sets.size(p.permissoes)} + ' permissões'"></span></td>
+						<td><a class="btn secondary"
+							th:href="@{/admin/perfis/{id}/editar(id=${p.id})}">Editar</a></td>
+					</tr>
+				</tbody>
+			</table>
+		</section>
+	</main>
+</body>
+</html>

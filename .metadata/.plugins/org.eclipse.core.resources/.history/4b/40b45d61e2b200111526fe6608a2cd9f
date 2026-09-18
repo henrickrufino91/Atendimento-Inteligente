@@ -1,0 +1,8 @@
+package br.com.hospital.atendimento.model;
+import jakarta.persistence.*; import lombok.*; import java.time.*;
+@Entity @Getter @Setter @NoArgsConstructor @Table(name="historico_login")
+public class HistoricoLogin {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+ private String email; private LocalDateTime dataHora=LocalDateTime.now(); private boolean sucesso; private String detalhe;
+ public HistoricoLogin(String e,boolean s,String d){email=e;sucesso=s;detalhe=d;}
+}

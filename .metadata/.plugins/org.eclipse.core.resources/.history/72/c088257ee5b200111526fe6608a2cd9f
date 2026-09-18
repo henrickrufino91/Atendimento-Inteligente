@@ -1,0 +1,2 @@
+package br.com.hospital.atendimento.model;
+public enum StatusAgendamento { AGENDADO, CONFIRMADO, REALIZADO, CANCELADO }

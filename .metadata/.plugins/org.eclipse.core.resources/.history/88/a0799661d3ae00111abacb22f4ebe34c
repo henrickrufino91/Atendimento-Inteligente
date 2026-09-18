@@ -1,0 +1,85 @@
+package br.com.portal.projeto.service;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+import br.com.portal.projeto.entity.Perfil;
+import br.com.portal.projeto.entity.Permissao;
+import br.com.portal.projeto.entity.Usuario;
+import br.com.portal.projeto.repository.UsuarioRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class CustomUserDetailsService
+        implements UserDetailsService {
+
+    private final UsuarioRepository usuarioRepository;
+
+    @Override
+    public UserDetails loadUserByUsername(String email)
+            throws UsernameNotFoundException {
+
+        Usuario usuario = usuarioRepository
+                .findByEmailIgnoreCase(email)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException(
+                                "Usuário não encontrado."
+                        )
+                );
+
+        if (!usuario.isAtivo()) {
+            throw new DisabledException(
+                    "Usuário desativado."
+            );
+        }
+
+        Set<GrantedAuthority> authorities =
+                new HashSet<>();
+
+        /*
+         * Perfis
+         *
+         * ADMIN vira ROLE_ADMIN
+         * MEDICO vira ROLE_MEDICO
+         * ENFERMAGEM vira ROLE_ENFERMAGEM
+         */
+        for (Perfil perfil : usuario.getPerfis()) {
+
+            authorities.add(
+                new SimpleGrantedAuthority(
+                    "ROLE_" + perfil.getCodigo()
+                )
+            );
+
+            /*
+             * Permissões associadas ao perfil
+             */
+            for (Permissao permissao :
+                    perfil.getPermissoes()) {
+
+                authorities.add(
+                    new SimpleGrantedAuthority(
+                        permissao.getCodigo()
+                    )
+                );
+            }
+        }
+
+        return Usuario.builder()
+                .email(usuario.getEmail())
+                .senha(usuario.getSenha())
+                .ativo(!usuario.isAtivo())
+                .build();
+    }
+}

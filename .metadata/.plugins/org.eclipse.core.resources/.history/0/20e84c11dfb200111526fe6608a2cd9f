@@ -1,0 +1,14 @@
+package br.com.hospital.atendimento.model;
+import jakarta.persistence.*; import lombok.*; import java.time.*;
+@Entity @Table(name="senha_atendimento") @Getter @Setter @NoArgsConstructor
+public class SenhaAtendimento {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+ @Column(nullable=false) private String codigo;
+ private LocalDate data=LocalDate.now();
+ private LocalDateTime criadaEm=LocalDateTime.now();
+ private LocalDateTime chamadaEm; private LocalDateTime finalizadaEm;
+ @Enumerated(EnumType.STRING) private PrioridadeSenha prioridade=PrioridadeSenha.NORMAL;
+ @Enumerated(EnumType.STRING) private StatusSenha status=StatusSenha.AGUARDANDO;
+ @ManyToOne private Paciente paciente;
+ private String guiche;
+}

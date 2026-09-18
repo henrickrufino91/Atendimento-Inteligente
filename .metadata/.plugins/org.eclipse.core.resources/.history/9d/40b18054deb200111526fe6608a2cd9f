@@ -1,0 +1,65 @@
+package br.com.portal.projeto.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import br.com.portal.projeto.dto.PerfilForm;
+import br.com.portal.projeto.service.RbacService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@Controller
+@RequestMapping("/admin/perfis")
+@RequiredArgsConstructor
+public class AdminPerfilController {
+	
+	private final RbacService rbac;
+
+	@GetMapping
+	public String lista(Model m) {
+		m.addAttribute("perfis", rbac.listarPerfis());
+		return "admin/perfis/lista";
+	}
+
+	@GetMapping("/novo")
+	public String novo(Model m) {
+		preparar(m, new PerfilForm());
+		return "admin/perfis/form";
+	}
+
+	@GetMapping("/{id}/editar")
+	public String editar(@PathVariable Long id, Model m) {
+		preparar(m, rbac.formPerfil(rbac.obterPerfil(id)));
+		return "admin/perfis/form";
+	}
+
+	@PostMapping("/salvar")
+	public String salvar(@Valid @ModelAttribute("form") PerfilForm form, BindingResult br, Model m,
+			RedirectAttributes ra) {
+		if (br.hasErrors()) {
+			preparar(m, form);
+			return "admin/perfis/form";
+		}
+		try {
+			rbac.salvarPerfil(form);
+			ra.addFlashAttribute("sucesso", "Perfil salvo com sucesso.");
+			return "redirect:/admin/perfis";
+		} catch (IllegalArgumentException e) {
+			m.addAttribute("erro", e.getMessage());
+			preparar(m, form);
+			return "admin/perfis/form";
+		}
+	}
+
+	private void preparar(Model m, PerfilForm form) {
+		m.addAttribute("form", form);
+		m.addAttribute("permissoes", rbac.listarPermissoes());
+	}
+}

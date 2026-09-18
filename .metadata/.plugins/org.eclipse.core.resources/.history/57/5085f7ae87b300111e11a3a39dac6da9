@@ -1,0 +1,16 @@
+package br.com.hospital.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.LocalDateTime;
+
+@Entity @Table(name="exame") @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Exame {
+    @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+    @ManyToOne(optional=false) @JoinColumn(name="atendimento_id") private Atendimento atendimento;
+    @Column(nullable=false, length=150) private String nome;
+    @Column(nullable=false, length=30) private String status = "SOLICITADO";
+    @Column(length=2000) private String resultado;
+    @Column(length=500) private String observacoes;
+    private LocalDateTime dataResultado;
+}

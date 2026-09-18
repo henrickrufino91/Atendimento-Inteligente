@@ -1,0 +1,64 @@
+package br.com.hospital.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+import br.com.portal.projeto.service.CustomUserDetailsService;
+import lombok.RequiredArgsConstructor;
+
+@Configuration
+@RequiredArgsConstructor
+@EnableMethodSecurity
+public class SecurityConfig {
+	private final CustomUserDetailsService userDetailsService;
+
+	@Bean
+	PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+	@Bean
+	DaoAuthenticationProvider authenticationProvider() {
+
+	    DaoAuthenticationProvider provider =
+	            new DaoAuthenticationProvider(userDetailsService);
+
+	    provider.setPasswordEncoder(passwordEncoder());
+
+	    return provider;
+	}
+
+	@Bean
+	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		http.authorizeHttpRequests(a -> a.requestMatchers("/css/**", "/js/**", "/login", "/error").permitAll()
+				.requestMatchers("/admin/**").hasRole("ADMIN")
+				.requestMatchers("/pacientes/novo", "/pacientes/salvar", "/pacientes/*/editar")
+				.hasAuthority("PACIENTE_EDITAR").requestMatchers("/pacientes/**").hasAuthority("PACIENTE_VISUALIZAR")
+				.requestMatchers("/agendamentos/novo", "/agendamentos/salvar", "/agendamentos/*/editar",
+						"/agendamentos/*/status")
+				.hasAuthority("AGENDAMENTO_EDITAR").requestMatchers("/agendamentos/**")
+				.hasAuthority("AGENDAMENTO_VISUALIZAR")
+				.requestMatchers("/fila-senhas/chamar/**", "/fila-senhas/chamar-proxima", "/fila-senhas/*/chamar",
+						"/fila-senhas/*/iniciar", "/fila-senhas/*/finalizar", "/fila-senhas/*/cancelar")
+				.hasAuthority("FILA_CHAMAR")
+				.requestMatchers("/fila-senhas/nova", "/fila-senhas/emitir", "/fila-senhas/salvar")
+				.hasAuthority("FILA_EMITIR").requestMatchers("/fila-senhas/**").hasAuthority("FILA_VISUALIZAR")
+				.requestMatchers("/classificacao-risco/**").hasAuthority("RISCO_CLASSIFICAR")
+				.requestMatchers("/atendimentos/*/prescricoes").hasAuthority("PRESCRICAO_GERENCIAR")
+				.requestMatchers("/atendimentos/*/exames").hasAuthority("EXAME_GERENCIAR")
+				.requestMatchers("/atendimentos/novo", "/atendimentos/salvar", "/atendimentos/*/editar",
+						"/atendimentos/*/finalizar")
+				.hasAuthority("ATENDIMENTO_EDITAR").requestMatchers("/atendimentos/**")
+				.hasAuthority("ATENDIMENTO_VISUALIZAR").requestMatchers("/relatorios/**").authenticated().anyRequest()
+				.authenticated()).formLogin(f -> f.loginPage("/login").defaultSuccessUrl("/", true).permitAll())
+				.exceptionHandling(e -> e.accessDeniedPage("/acesso-negado"))
+				.logout(l -> l.logoutSuccessUrl("/login?logout").permitAll());
+		return http.build();
+	}
+}

@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Usuário</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body><nav th:replace="~{fragments :: nav}"></nav><main class="container">
+<div class="page-head"><div><h1 th:text="${form.id == null ? 'Novo usuário' : 'Editar usuário'}"></h1><p>Atribua um ou mais perfis para compor as permissões efetivas.</p></div></div>
+<div class="alert error" th:if="${erro}" th:text="${erro}"></div>
+<form class="panel form-grid" th:action="@{/admin/usuarios/salvar}" th:object="${form}" method="post">
+<input type="hidden" th:field="*{id}">
+<label>Nome<input type="text" th:field="*{nome}" required maxlength="120"><small class="field-error" th:errors="*{nome}"></small></label>
+<label>E-mail<input type="email" th:field="*{email}" required maxlength="150"><small class="field-error" th:errors="*{email}"></small></label>
+<label>Senha<input type="password" th:field="*{senha}" th:placeholder="${form.id == null ? 'Obrigatória' : 'Deixe em branco para manter'}"><small>Ao editar, deixe em branco para manter a senha atual.</small></label>
+<label class="checkline"><input type="checkbox" th:field="*{ativo}"> Usuário ativo</label>
+<div class="full"><h3>Perfis</h3><div class="permission-grid"><label class="permission-item" th:each="p:${perfis}"><input type="checkbox" th:field="*{perfilIds}" th:value="${p.id}"><span><strong th:text="${p.nome}"></strong><small th:text="${p.descricao}"></small></span></label></div></div>
+<div class="full actions"><button class="primary btn" type="submit">Salvar usuário</button><a class="btn secondary" th:href="@{/admin/usuarios}">Cancelar</a></div>
+</form></main></body></html>

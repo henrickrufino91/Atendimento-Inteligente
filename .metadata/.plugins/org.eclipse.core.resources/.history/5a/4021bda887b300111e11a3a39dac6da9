@@ -1,0 +1,77 @@
+package br.com.hospital.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "classificacao_risco")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class ClassificacaoRisco {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @OneToOne(optional = false)
+    @JoinColumn(name = "senha_id", nullable = false, unique = true)
+    private SenhaAtendimento senha;
+
+    @ManyToOne
+    @JoinColumn(name = "paciente_id")
+    private Paciente paciente;
+
+    @Column(nullable = false, length = 1000)
+    private String queixaPrincipal;
+
+    @Column(length = 20)
+    private String pressaoArterial;
+    private Double temperatura;
+    private Integer frequenciaCardiaca;
+    private Integer frequenciaRespiratoria;
+    private Double saturacao;
+    private Integer escalaDor;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean consciente = true;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean dificuldadeRespiratoria = false;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean sangramentoImportante = false;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean dorToracica = false;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean deficitNeurologicoAgudo = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "nivel_sugerido", nullable = false, length = 20)
+    private NivelRisco nivelSugerido;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "nivel_final", nullable = false, length = 20)
+    private NivelRisco nivelFinal;
+
+    @Column(length = 150)
+    private String profissional;
+
+    @Column(length = 1000)
+    private String justificativaAlteracao;
+
+    @Column(length = 1500)
+    private String observacoes;
+
+    @Column(name = "classificado_em", nullable = false)
+    private LocalDateTime classificadoEm;
+
+    @PrePersist
+    void prePersist() {
+        if (classificadoEm == null) classificadoEm = LocalDateTime.now();
+    }
+}

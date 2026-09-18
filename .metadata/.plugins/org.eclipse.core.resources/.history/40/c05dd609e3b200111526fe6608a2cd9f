@@ -1,0 +1,51 @@
+package br.com.portal.projeto.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import br.com.portal.projeto.entity.Perfil;
+import br.com.portal.projeto.repository.PerfilRepository;
+import br.com.portal.projeto.repository.PermissaoRepository;
+
+@Controller
+@RequestMapping("/perfis")
+public class PerfilController {
+	private final PerfilRepository repo;
+	private final PermissaoRepository permissoes;
+
+	public PerfilController(PerfilRepository r, PermissaoRepository p) {
+		repo = r;
+		permissoes = p;
+	}
+
+	@GetMapping
+	public String lista(Model m) {
+		m.addAttribute("itens", repo.findAll());
+		return "perfis/lista";
+	}
+
+	@GetMapping("/novo")
+	public String novo(Model m) {
+		m.addAttribute("item", new Perfil());
+		m.addAttribute("permissoes", permissoes.findAll());
+		return "perfis/form";
+	}
+
+	@GetMapping("/{id}/editar")
+	public String editar(@PathVariable Long id, Model m) {
+		m.addAttribute("item", repo.findById(id).orElseThrow());
+		m.addAttribute("permissoes", permissoes.findAll());
+		return "perfis/form";
+	}
+
+	@PostMapping("/salvar")
+	public String salvar(@ModelAttribute Perfil p) {
+		repo.save(p);
+		return "redirect:/perfis";
+	}
+}

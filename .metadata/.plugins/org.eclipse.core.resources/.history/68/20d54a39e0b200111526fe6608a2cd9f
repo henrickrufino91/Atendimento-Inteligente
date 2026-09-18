@@ -1,0 +1,99 @@
+package br.com.hospital.atendimento.controller;
+
+import java.time.LocalDateTime;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import br.com.portal.projeto.entity.SinalVital;
+import br.com.portal.projeto.entity.StatusSenha;
+import br.com.portal.projeto.entity.StatusTriagem;
+import br.com.portal.projeto.entity.Triagem;
+import br.com.portal.projeto.repository.PacienteRepository;
+import br.com.portal.projeto.repository.ProfissionalRepository;
+import br.com.portal.projeto.repository.SenhaAtendimentoRepository;
+import br.com.portal.projeto.repository.SinalVitalRepository;
+import br.com.portal.projeto.repository.TriagemRepository;
+
+@Controller
+@RequestMapping("/triagens")
+public class TriagemController {
+	private final TriagemRepository triagens;
+	private final SinalVitalRepository sinais;
+	private final PacienteRepository pacientes;
+	private final ProfissionalRepository profissionais;
+	private final SenhaAtendimentoRepository senhas;
+
+	public TriagemController(TriagemRepository t, SinalVitalRepository s, PacienteRepository p,
+			ProfissionalRepository pr, SenhaAtendimentoRepository se) {
+		triagens = t;
+		sinais = s;
+		pacientes = p;
+		profissionais = pr;
+		senhas = se;
+	}
+
+	@GetMapping
+	public String lista(Model m) {
+		m.addAttribute("itens", triagens.findAll());
+		return "triagens/lista";
+	}
+
+	@GetMapping("/nova")
+	public String nova(@RequestParam(required = false) Long senhaId, Model m) {
+		Triagem t = new Triagem();
+		if (senhaId != null)
+			senhas.findById(senhaId).ifPresent(s -> {
+				t.setSenha(s);
+				t.setPaciente(s.getPaciente());
+			});
+		m.addAttribute("item", t);
+		m.addAttribute("pacientes", pacientes.findAll());
+		m.addAttribute("profissionais", profissionais.findAll());
+		return "triagens/form";
+	}
+
+	@PostMapping("/salvar")
+	public String salvar(@ModelAttribute Triagem t, @RequestParam(required = false) Integer pressaoSistolica,
+			@RequestParam(required = false) Integer pressaoDiastolica,
+			@RequestParam(required = false) Integer frequenciaCardiaca,
+			@RequestParam(required = false) Integer frequenciaRespiratoria,
+			@RequestParam(required = false) Integer saturacao, @RequestParam(required = false) Integer glicemia,
+			@RequestParam(required = false) Integer dor, @RequestParam(required = false) Double temperatura,
+			@RequestParam(required = false) Double peso, @RequestParam(required = false) Double altura) {
+		t.setStatus(StatusTriagem.CONCLUIDA);
+		t.setConcluidaEm(LocalDateTime.now());
+		t = triagens.save(t);
+		SinalVital v = new SinalVital();
+		v.setTriagem(t);
+		v.setPressaoSistolica(pressaoSistolica);
+		v.setPressaoDiastolica(pressaoDiastolica);
+		v.setFrequenciaCardiaca(frequenciaCardiaca);
+		v.setFrequenciaRespiratoria(frequenciaRespiratoria);
+		v.setSaturacao(saturacao);
+		v.setGlicemia(glicemia);
+		v.setDor(dor);
+		v.setTemperatura(temperatura);
+		v.setPeso(peso);
+		v.setAltura(altura);
+		sinais.save(v);
+		if (t.getSenha() != null) {
+			t.getSenha().setStatus(StatusSenha.AGUARDANDO);
+			senhas.save(t.getSenha());
+		}
+		return "redirect:/triagens";
+	}
+
+	@GetMapping("/{id}")
+	public String detalhe(@PathVariable Long id, Model m) {
+		m.addAttribute("item", triagens.findById(id).orElseThrow());
+		m.addAttribute("sinais", sinais.findAll().stream().filter(x -> x.getTriagem().getId().equals(id)).toList());
+		return "triagens/detalhe";
+	}
+}

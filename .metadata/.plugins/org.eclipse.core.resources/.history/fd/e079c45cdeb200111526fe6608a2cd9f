@@ -1,0 +1,6 @@
+package br.com.portal.projeto.dto;
+
+import br.com.portal.projeto.entity.enums.NivelRisco;
+
+public record IndicadorRisco(NivelRisco nivel, long quantidade, long dentroDoAlvo, double percentualDentroDoAlvo) {
+}

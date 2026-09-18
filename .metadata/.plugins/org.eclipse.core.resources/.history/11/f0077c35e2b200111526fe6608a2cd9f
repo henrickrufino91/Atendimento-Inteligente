@@ -1,0 +1,8 @@
+package br.com.hospital.atendimento.model;
+import jakarta.persistence.*; import lombok.*;
+@Entity @Getter @Setter @NoArgsConstructor
+public class Profissional {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
+ @Column(nullable=false) private String nome;
+ private String conselho; private String especialidade; private boolean ativo=true;
+}

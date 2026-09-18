@@ -1,0 +1,3 @@
+package br.com.hospital.atendimento.repository;
+import br.com.hospital.atendimento.model.*; import org.springframework.data.jpa.repository.JpaRepository;
+public interface SinalVitalRepository extends JpaRepository<SinalVital,Long> { }

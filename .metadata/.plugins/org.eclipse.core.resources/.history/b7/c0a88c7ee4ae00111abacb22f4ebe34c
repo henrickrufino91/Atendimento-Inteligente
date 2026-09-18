@@ -1,0 +1,4 @@
+package br.com.hospital.dto;
+
+public record IndicadorProfissional(String profissional, long atendimentos, long finalizados) {
+}
