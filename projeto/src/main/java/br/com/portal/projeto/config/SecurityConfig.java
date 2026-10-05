@@ -3,6 +3,7 @@ package br.com.portal.projeto.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -33,7 +34,12 @@ public class SecurityConfig {
 	@Bean
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.authorizeHttpRequests(a -> a.requestMatchers("/css/**", "/js/**", "/login", "/error").permitAll()
+				.requestMatchers("/admin/auditoria/**").hasAuthority("AUDITORIA_VISUALIZAR")
 				.requestMatchers("/admin/**").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.POST, "/pacientes/*/convenios/**").hasAuthority("CONVENIO_GERENCIAR")
+				.requestMatchers(HttpMethod.GET, "/pacientes/*/convenios/**").hasAuthority("CONVENIO_VISUALIZAR")
+				.requestMatchers("/convenios/novo", "/convenios/salvar", "/convenios/*/editar").hasAuthority("CONVENIO_GERENCIAR")
+				.requestMatchers("/convenios/**").hasAuthority("CONVENIO_VISUALIZAR")
 				.requestMatchers("/pacientes/novo", "/pacientes/salvar", "/pacientes/*/editar")
 				.hasAuthority("PACIENTE_EDITAR").requestMatchers("/pacientes/**").hasAuthority("PACIENTE_VISUALIZAR")
 				.requestMatchers("/agendamentos/novo", "/agendamentos/salvar", "/agendamentos/*/editar",

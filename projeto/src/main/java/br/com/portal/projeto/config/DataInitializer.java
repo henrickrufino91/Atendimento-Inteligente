@@ -25,6 +25,7 @@ import br.com.portal.projeto.repository.PerfilRepository;
 import br.com.portal.projeto.repository.PermissaoRepository;
 import br.com.portal.projeto.repository.ProfissionalRepository;
 import br.com.portal.projeto.repository.UsuarioRepository;
+import br.com.portal.projeto.repository.ConvenioRepository;
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -34,7 +35,7 @@ public class DataInitializer {
 
 	@Bean
 	CommandLineRunner seed(UsuarioRepository usuarios, PerfilRepository perfis, PermissaoRepository permissoes,
-			ProfissionalRepository profissionais, PacienteRepository pacientes) {
+			ProfissionalRepository profissionais, PacienteRepository pacientes, ConvenioRepository convenios) {
 		return args -> {
 
 			Map<String, String[]> defs = new LinkedHashMap<>();
@@ -66,6 +67,9 @@ public class DataInitializer {
 					"Visualizar indicadores operacionais atualizados automaticamente" });
 			defs.put("RELATORIO_PDF_GERAR",
 					new String[] { "Gerar relatório PDF mensal", "Emitir relatório gerencial mensal em PDF" });
+			defs.put("AUDITORIA_VISUALIZAR", new String[] { "Visualizar auditoria", "Consultar logs de autenticação e ações dos usuários" });
+			defs.put("CONVENIO_VISUALIZAR", new String[] { "Visualizar convênios", "Consultar operadoras, planos e cobertura do paciente" });
+			defs.put("CONVENIO_GERENCIAR", new String[] { "Gerenciar convênios", "Cadastrar operadoras e vincular planos aos pacientes" });
 
 			Map<String, Permissao> pm = new LinkedHashMap<>();
 			defs.forEach((codigo, v) -> pm.put(codigo, permissoes.findByCodigo(codigo).orElseGet(
@@ -75,17 +79,17 @@ public class DataInitializer {
 			criarPerfil(perfis, "RECEPCAO", "Recepção", "Cadastro, agenda e emissão de senhas",
 					Set.of("PACIENTE_VISUALIZAR", "PACIENTE_EDITAR", "AGENDAMENTO_VISUALIZAR", "AGENDAMENTO_EDITAR",
 							"FILA_VISUALIZAR", "FILA_EMITIR", "FILA_CHAMAR", "RELATORIO_VISUALIZAR",
-							"PAINEL_GERENCIAL_VISUALIZAR"),
+							"PAINEL_GERENCIAL_VISUALIZAR", "CONVENIO_VISUALIZAR", "CONVENIO_GERENCIAR"),
 					pm);
 			criarPerfil(perfis, "ENFERMAGEM", "Enfermagem", "Fila, triagem, risco e acompanhamento",
 					Set.of("PACIENTE_VISUALIZAR", "AGENDAMENTO_VISUALIZAR", "FILA_VISUALIZAR", "FILA_CHAMAR",
 							"RISCO_CLASSIFICAR", "ATENDIMENTO_VISUALIZAR", "RELATORIO_VISUALIZAR",
-							"PAINEL_GERENCIAL_VISUALIZAR"),
+							"PAINEL_GERENCIAL_VISUALIZAR", "CONVENIO_VISUALIZAR"),
 					pm);
 			criarPerfil(perfis, "MEDICO", "Médico", "Atendimento clínico, prescrições e exames",
 					Set.of("PACIENTE_VISUALIZAR", "AGENDAMENTO_VISUALIZAR", "FILA_VISUALIZAR", "ATENDIMENTO_VISUALIZAR",
 							"ATENDIMENTO_EDITAR", "EXAME_GERENCIAR", "PRESCRICAO_GERENCIAR", "RELATORIO_VISUALIZAR",
-							"PAINEL_GERENCIAL_VISUALIZAR"),
+							"PAINEL_GERENCIAL_VISUALIZAR", "CONVENIO_VISUALIZAR"),
 					pm);
 			criarPerfil(perfis, "LABORATORIO", "Laboratório", "Consulta de pacientes e gerenciamento de exames",
 					Set.of("PACIENTE_VISUALIZAR", "ATENDIMENTO_VISUALIZAR", "EXAME_GERENCIAR"), pm);
@@ -116,6 +120,9 @@ public class DataInitializer {
 						.especialidade("Clínica Médica").email("ana@hospital.local").ativo(true).build());
 				profissionais.save(Profissional.builder().nome("Dr. Carlos Lima").registro("CRM-67890")
 						.especialidade("Cardiologia").email("carlos@hospital.local").ativo(true).build());
+			}
+			if (convenios.count() == 0) {
+				convenios.save(br.com.portal.projeto.entity.Convenio.builder().nome("Convênio Demonstração").registroAns("000000").telefone("(00) 0000-0000").email("contato@convenio.local").ativo(true).build());
 			}
 			if (pacientes.count() == 0) {
 				pacientes.save(Paciente.builder().nome("Paciente Demonstração").cpf("00000000000")

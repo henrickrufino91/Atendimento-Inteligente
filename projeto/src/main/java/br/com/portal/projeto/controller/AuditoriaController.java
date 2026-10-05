@@ -1,0 +1,38 @@
+package br.com.portal.projeto.controller;
+
+import br.com.portal.projeto.entity.TipoEventoAuditoria;
+import br.com.portal.projeto.service.AuditoriaService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import java.time.LocalDate;
+
+@Controller
+@RequestMapping("/admin/auditoria")
+@RequiredArgsConstructor
+public class AuditoriaController {
+	private final AuditoriaService service;
+
+	@GetMapping
+	@PreAuthorize("hasAuthority('AUDITORIA_VISUALIZAR')")
+	public String listar(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
+			@RequestParam(required = false) String usuario, @RequestParam(required = false) TipoEventoAuditoria tipo,
+			Model m) {
+		if (inicio == null)
+			inicio = LocalDate.now().minusDays(7);
+		if (fim == null)
+			fim = LocalDate.now();
+		m.addAttribute("eventos", service.listar(inicio, fim, usuario, tipo));
+		m.addAttribute("tipos", TipoEventoAuditoria.values());
+		m.addAttribute("inicio", inicio);
+		m.addAttribute("fim", fim);
+		m.addAttribute("usuario", usuario);
+		m.addAttribute("tipoSelecionado", tipo);
+		return "admin/auditoria/lista";
+	}
+}

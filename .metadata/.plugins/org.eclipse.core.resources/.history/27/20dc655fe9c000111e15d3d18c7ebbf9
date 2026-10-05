@@ -1,0 +1,44 @@
+package br.com.portal.projeto.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+
+import br.com.portal.projeto.entity.StatusAgendamento;
+import br.com.portal.projeto.repository.AgendamentoRepository;
+import br.com.portal.projeto.repository.AtendimentoRepository;
+import br.com.portal.projeto.repository.PacienteRepository;
+import br.com.portal.projeto.service.AgendamentoService;
+import lombok.RequiredArgsConstructor;
+
+@Controller
+@RequiredArgsConstructor
+public class HomeController {
+	private final PacienteRepository pacientes;
+	private final AgendamentoRepository agendamentos;
+	private final AtendimentoRepository atendimentos;
+	private final AgendamentoService agendamentoService;
+	private final br.com.portal.projeto.service.FilaSenhaService filaSenhaService;
+
+	@GetMapping("/login")
+	String login() {
+		return "login";
+	}
+
+	@GetMapping("/acesso-negado")
+	String acessoNegado() {
+		return "acesso-negado";
+	}
+
+	@GetMapping("/")
+	String home(Model m) {
+		m.addAttribute("pacientes", pacientes.count());
+		m.addAttribute("agendamentosHoje", agendamentoService.hoje().size());
+		m.addAttribute("atendimentosAbertos", atendimentos.countByFimIsNull());
+		m.addAttribute("confirmados", agendamentos.countByStatus(StatusAgendamento.CONFIRMADO));
+		m.addAttribute("senhasAguardando", filaSenhaService.aguardando());
+		m.addAttribute("agenda", agendamentoService.hoje());
+		m.addAttribute("ultimos", atendimentos.findTop10ByOrderByInicioDesc());
+		return "index";
+	}
+}

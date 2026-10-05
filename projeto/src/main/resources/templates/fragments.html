@@ -15,13 +15,14 @@
     <div class="links" id="main-nav">
       <a class="nav-home nav-item" data-menu-path="/" th:href="@{/}">Home</a>
 
-      <details class="nav-group" sec:authorize="hasAnyAuthority('PACIENTE_VISUALIZAR','AGENDAMENTO_VISUALIZAR','FILA_VISUALIZAR')">
+      <details class="nav-group" sec:authorize="hasAnyAuthority('PACIENTE_VISUALIZAR','AGENDAMENTO_VISUALIZAR','FILA_VISUALIZAR','CONVENIO_VISUALIZAR')">
         <summary>Atendimento <span class="chevron">⌄</span></summary>
         <div class="nav-dropdown">
           <div class="nav-section-title">Fluxo de entrada</div>
           <a class="nav-item" data-menu-path="/fila-senhas" sec:authorize="hasAuthority('FILA_VISUALIZAR')" th:href="@{/fila-senhas}"><b>Fila de senhas</b><small>Emissão, chamada e acompanhamento</small></a>
           <a class="nav-item" data-menu-path="/agendamentos" sec:authorize="hasAuthority('AGENDAMENTO_VISUALIZAR')" th:href="@{/agendamentos}"><b>Agendamentos</b><small>Agenda de consultas e retornos</small></a>
           <a class="nav-item" data-menu-path="/pacientes" sec:authorize="hasAuthority('PACIENTE_VISUALIZAR')" th:href="@{/pacientes}"><b>Pacientes</b><small>Cadastro e consulta</small></a>
+          <a class="nav-item" data-menu-path="/convenios" sec:authorize="hasAuthority('CONVENIO_VISUALIZAR')" th:href="@{/convenios}"><b>Convênios</b><small>Operadoras, planos e cobertura</small></a>
         </div>
       </details>
 
@@ -34,12 +35,13 @@
         </div>
       </details>
 
-      <details class="nav-group" sec:authorize="hasAnyAuthority('RELATORIO_VISUALIZAR','PAINEL_GERENCIAL_VISUALIZAR')">
+      <details class="nav-group" sec:authorize="hasAnyAuthority('RELATORIO_VISUALIZAR','PAINEL_GERENCIAL_VISUALIZAR','AUDITORIA_VISUALIZAR')">
         <summary>Gestão <span class="chevron">⌄</span></summary>
         <div class="nav-dropdown nav-dropdown-right">
           <div class="nav-section-title">Indicadores e decisão</div>
           <a class="nav-item" data-menu-path="/relatorios" data-exact-exclude="/relatorios/tempo-real" sec:authorize="hasAuthority('RELATORIO_VISUALIZAR')" th:href="@{/relatorios}"><b>Relatórios e indicadores</b><small>Análises, gráficos e exportações</small></a>
           <a class="nav-item" data-menu-path="/relatorios/tempo-real" sec:authorize="hasAuthority('PAINEL_GERENCIAL_VISUALIZAR')" th:href="@{/relatorios/tempo-real}"><b>Painel em tempo real</b><small>Operação atualizada automaticamente</small></a>
+          <a class="nav-item" data-menu-path="/admin/auditoria" sec:authorize="hasAuthority('AUDITORIA_VISUALIZAR')" th:href="@{/admin/auditoria}"><b>Auditoria</b><small>Login, alterações, exclusões e ações</small></a>
         </div>
       </details>
 

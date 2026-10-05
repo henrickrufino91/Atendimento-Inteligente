@@ -1,0 +1,9 @@
+package br.com.portal.projeto.dto;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+public record IndicadoresTempoReal(LocalDateTime atualizadoEm, long aguardando, long chamadas, long emAtendimento,
+		long finalizadasHoje, long atendimentosAbertos, double esperaMediaMin, double slaRiscoHoje,
+		List<IndicadorRisco> riscos, List<IndicadorProfissional> profissionais) {
+}

@@ -1,0 +1,9 @@
+<!DOCTYPE html><html lang="pt-br" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Usuários</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body><nav th:replace="~{fragments :: nav}"></nav><main class="container">
+<div class="page-head"><div><h1>Usuários</h1><p>Contas, status e perfis de acesso.</p></div><a class="primary btn" th:href="@{/admin/usuarios/novo}">Novo usuário</a></div>
+<div class="alert success" th:if="${sucesso}" th:text="${sucesso}"></div>
+<section class="panel"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Perfis</th><th>Status</th><th></th></tr></thead><tbody>
+<tr th:each="u:${usuarios}"><td th:text="${u.nome}"></td><td th:text="${u.email}"></td><td><span class="badge" th:each="p:${u.perfis}" th:text="${p.nome}" style="margin-right:4px"></span></td><td><span class="badge" th:text="${u.ativo ? 'ATIVO' : 'INATIVO'}"></span></td><td><a class="btn secondary" th:href="@{/admin/usuarios/{id}/editar(id=${u.id})}">Editar</a></td></tr>
+<tr th:if="${#lists.isEmpty(usuarios)}"><td colspan="5">Nenhum usuário cadastrado.</td></tr></tbody></table></section>
+</main></body></html>

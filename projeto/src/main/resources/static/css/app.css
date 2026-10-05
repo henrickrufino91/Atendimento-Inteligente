@@ -34,3 +34,10 @@
  .report-canvas{max-height:210px!important}
  a{text-decoration:none!important;color:#000!important}
 }
+
+/* Convênios e particular */
+.coverage-item{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:13px 0;border-bottom:1px solid #eaecf0}.coverage-item>div{display:flex;flex-direction:column;gap:4px}.coverage-item>div:last-child{align-items:flex-end}.coverage-summary{border-left:5px solid #0f766e}.coverage-summary p{margin:0}.coverage-item small{color:#667085}@media(max-width:650px){.coverage-item{align-items:flex-start;flex-direction:column}.coverage-item>div:last-child{align-items:flex-start}}
+
+
+/* Auditoria */
+.audit-filter{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.audit-filter label{min-width:150px;margin:0}.audit-table-wrap{overflow:auto}.audit-table{min-width:1180px}.audit-table code{white-space:normal;font-size:11px}.audit-table td{vertical-align:top;font-size:12px}

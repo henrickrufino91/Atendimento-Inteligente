@@ -6,6 +6,6 @@ import java.util.List;
 public record RelatorioIndicadores(LocalDate inicio, LocalDate fim, long senhasEmitidas, long senhasFinalizadas,
 		long senhasCanceladas, long aguardando, long atendimentos, long atendimentosFinalizados,
 		double tempoMedioEsperaMin, double tempoMedioAtendimentoMin, double percentualFinalizacao,
-		double percentualSlaRisco, List<IndicadorRisco> riscos, List<IndicadorDia> serieDiaria,
+		double percentualSlaRisco, long atendimentosParticulares, long atendimentosConvenio, List<IndicadorRisco> riscos, List<IndicadorDia> serieDiaria,
 		List<IndicadorProfissional> profissionais) {
 }

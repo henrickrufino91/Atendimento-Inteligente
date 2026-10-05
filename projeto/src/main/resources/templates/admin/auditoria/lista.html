@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Auditoria</title>
+<link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+	<nav th:replace="~{fragments :: nav}"></nav>
+	<main class="container">
+		<div class="page-head">
+			<div>
+				<h1>Auditoria do sistema</h1>
+				<p>Rastreabilidade de autenticação, alterações, exclusões e
+					ações dos usuários.</p>
+			</div>
+		</div>
+		<section class="panel">
+			<form method="get" class="audit-filter">
+				<label>Início<input type="date" name="inicio"
+					th:value="${inicio}"></label><label>Fim<input type="date"
+					name="fim" th:value="${fim}"></label><label>Usuário<input
+					type="text" name="usuario" th:value="${usuario}"
+					placeholder="e-mail"></label><label>Evento<select
+					name="tipo"><option value="">Todos</option>
+						<option th:each="t:${tipos}" th:value="${t}" th:text="${t}"
+							th:selected="${tipoSelecionado==t}"></option></select></label>
+				<button class="primary btn" type="submit">Filtrar</button>
+			</form>
+		</section>
+		<section class="panel audit-table-wrap">
+			<table class="audit-table">
+				<thead>
+					<tr>
+						<th>Data/hora</th>
+						<th>Usuário</th>
+						<th>Evento</th>
+						<th>Entidade</th>
+						<th>Registro</th>
+						<th>Ação</th>
+						<th>Status</th>
+						<th>IP</th>
+						<th>Detalhes</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr th:each="a:${eventos}">
+						<td
+							th:text="${#temporals.format(a.dataHora,'dd/MM/yyyy HH:mm:ss')}"></td>
+						<td th:text="${a.usuario}"></td>
+						<td><span class="badge" th:text="${a.tipoEvento}"></span></td>
+						<td th:text="${a.entidade}"></td>
+						<td th:text="${a.registroId ?: '-'}"></td>
+						<td><code th:text="${a.metodo+' '+a.rota}"></code></td>
+						<td th:text="${a.statusHttp}"></td>
+						<td th:text="${a.ip}"></td>
+						<td th:text="${a.detalhes}"></td>
+					</tr>
+					<tr th:if="${#lists.isEmpty(eventos)}">
+						<td colspan="9">Nenhum evento encontrado no período.</td>
+					</tr>
+				</tbody>
+			</table>
+		</section>
+		<p class="muted">Por segurança, senhas, tokens e segredos nunca
+			são gravados nos detalhes da auditoria.</p>
+	</main>
+</body>
+</html>

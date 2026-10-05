@@ -1,0 +1,10 @@
+package br.com.portal.projeto.repository;
+import br.com.portal.projeto.entity.*;
+import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
+import java.time.LocalDateTime;
+import java.util.List;
+public interface AuditoriaRepository extends JpaRepository<Auditoria,Long>{
+ @Query("select a from Auditoria a where (:inicio is null or a.dataHora>=:inicio) and (:fim is null or a.dataHora<:fim) and (:usuario is null or :usuario='' or lower(a.usuario) like lower(concat('%',:usuario,'%'))) and (:tipo is null or a.tipoEvento=:tipo) order by a.dataHora desc")
+ List<Auditoria> filtrar(@Param("inicio") LocalDateTime inicio,@Param("fim") LocalDateTime fim,@Param("usuario") String usuario,@Param("tipo") TipoEventoAuditoria tipo);
+}

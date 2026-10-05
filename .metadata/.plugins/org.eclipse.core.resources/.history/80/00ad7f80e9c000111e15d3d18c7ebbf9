@@ -1,0 +1,61 @@
+package br.com.portal.projeto.entity;
+
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "atendimento")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Atendimento {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	@ManyToOne(optional = false)
+	@JoinColumn(name = "paciente_id")
+	private Paciente paciente;
+	@ManyToOne(optional = false)
+	@JoinColumn(name = "profissional_id")
+	private Profissional profissional;
+	@OneToOne
+	@JoinColumn(name = "agendamento_id", unique = true)
+	private Agendamento agendamento;
+	@Column(nullable = false)
+	private LocalDateTime inicio;
+	private LocalDateTime fim;
+	@Column(nullable = false, length = 500)
+	private String queixaPrincipal;
+	@Column(length = 2000)
+	private String anamnese;
+	@Column(length = 1000)
+	private String diagnostico;
+	@Column(length = 1000)
+	private String conduta;
+	@Column(length = 20)
+	private String pressaoArterial;
+	private Double temperatura;
+	private Integer frequenciaCardiaca;
+	private Double saturacao;
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 20)
+	private Prioridade classificacao = Prioridade.NORMAL;
+}

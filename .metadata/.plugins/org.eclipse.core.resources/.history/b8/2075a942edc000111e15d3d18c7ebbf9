@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Classificação de risco</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<main class="container narrow">
+  <div class="page-head">
+    <div>
+      <h1>Classificação de risco</h1>
+      <p>Senha <strong th:text="${senha.codigo}">N001</strong> · <span th:text="${senha.paciente != null ? senha.paciente.nome : 'Paciente não identificado'}"></span></p>
+    </div>
+    <a class="btn secondary" th:href="@{/fila-senhas}">Voltar à fila</a>
+  </div>
+
+  <div th:if="${erro}" class="alert error" th:text="${erro}"></div>
+  <div class="note clinical-warning">
+    <strong>Apoio à triagem:</strong> a sugestão automática usa regras internas simplificadas. O nível final deve ser confirmado por profissional habilitado e não substitui protocolo clínico institucional.
+  </div>
+
+  <form class="panel" method="post" th:action="@{'/classificacao-risco/senha/' + ${senha.id}}">
+    <h2>Queixa e sinais vitais</h2>
+    <div class="form-grid">
+      <label class="span2">Queixa principal
+        <textarea name="queixaPrincipal" required maxlength="1000" th:text="${classificacao != null ? classificacao.queixaPrincipal : senha.observacao}"></textarea>
+      </label>
+      <label>Pressão arterial
+        <input name="pressaoArterial" placeholder="120/80" th:value="${classificacao != null ? classificacao.pressaoArterial : ''}">
+      </label>
+      <label>Temperatura (°C)
+        <input type="number" step="0.1" min="30" max="45" name="temperatura" th:value="${classificacao != null ? classificacao.temperatura : ''}">
+      </label>
+      <label>Frequência cardíaca (bpm)
+        <input type="number" min="20" max="250" name="frequenciaCardiaca" th:value="${classificacao != null ? classificacao.frequenciaCardiaca : ''}">
+      </label>
+      <label>Frequência respiratória (irpm)
+        <input type="number" min="4" max="80" name="frequenciaRespiratoria" th:value="${classificacao != null ? classificacao.frequenciaRespiratoria : ''}">
+      </label>
+      <label>Saturação O₂ (%)
+        <input type="number" step="0.1" min="50" max="100" name="saturacao" th:value="${classificacao != null ? classificacao.saturacao : ''}">
+      </label>
+      <label>Escala de dor (0–10)
+        <input type="number" min="0" max="10" name="escalaDor" th:value="${classificacao != null ? classificacao.escalaDor : ''}">
+      </label>
+    </div>
+
+    <h2>Sinais de alerta</h2>
+    <div class="risk-checks">
+      <label class="check"><input type="checkbox" name="consciente" value="true" th:checked="${classificacao == null or classificacao.consciente}"> Paciente consciente</label>
+      <label class="check"><input type="checkbox" name="dificuldadeRespiratoria" value="true" th:checked="${classificacao != null and classificacao.dificuldadeRespiratoria}"> Dificuldade respiratória</label>
+      <label class="check"><input type="checkbox" name="sangramentoImportante" value="true" th:checked="${classificacao != null and classificacao.sangramentoImportante}"> Sangramento importante</label>
+      <label class="check"><input type="checkbox" name="dorToracica" value="true" th:checked="${classificacao != null and classificacao.dorToracica}"> Dor torácica</label>
+      <label class="check"><input type="checkbox" name="deficitNeurologicoAgudo" value="true" th:checked="${classificacao != null and classificacao.deficitNeurologicoAgudo}"> Déficit neurológico agudo</label>
+    </div>
+
+    <h2>Confirmação profissional</h2>
+    <div class="form-grid">
+      <label>Nível final
+        <select name="nivelFinal">
+          <option value="">Usar sugestão automática</option>
+          <option th:each="n : ${niveis}" th:value="${n}" th:selected="${classificacao != null and classificacao.nivelFinal == n}" th:text="${n + ' — ' + n.descricao + ' (' + n.tempoAlvoMinutos + ' min)'}"></option>
+        </select>
+      </label>
+      <label>Profissional responsável
+        <input name="profissional" maxlength="150" placeholder="Nome do profissional" th:value="${classificacao != null ? classificacao.profissional : ''}">
+      </label>
+      <label class="span2">Justificativa para alteração manual
+        <textarea name="justificativaAlteracao" maxlength="1000" placeholder="Obrigatória quando o nível final divergir da sugestão" th:text="${classificacao != null ? classificacao.justificativaAlteracao : ''}"></textarea>
+      </label>
+      <label class="span2">Observações
+        <textarea name="observacoes" maxlength="1500" th:text="${classificacao != null ? classificacao.observacoes : ''}"></textarea>
+      </label>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" th:href="@{/fila-senhas}">Cancelar</a>
+      <button class="primary" type="submit">Salvar classificação</button>
+    </div>
+  </form>
+</main>
+</body>
+</html>

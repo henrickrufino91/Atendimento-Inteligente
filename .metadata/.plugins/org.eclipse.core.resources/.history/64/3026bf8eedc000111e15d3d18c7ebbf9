@@ -1,0 +1,46 @@
+package br.com.portal.projeto.service;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+import br.com.portal.projeto.entity.Perfil;
+import br.com.portal.projeto.entity.Usuario;
+import br.com.portal.projeto.repository.UsuarioRepository;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class CustomUserDetailsService implements UserDetailsService {
+	private final UsuarioRepository repo;
+
+	@Override
+	public UserDetails loadUserByUsername(String username) {
+		Usuario u = repo.findByEmailIgnoreCase(username)
+				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado"));
+
+		Set<SimpleGrantedAuthority> authorities = new LinkedHashSet<>();
+		if (u.getPerfis() != null) {
+			for (Perfil perfil : u.getPerfis()) {
+				authorities.add(new SimpleGrantedAuthority("ROLE_" + perfil.getCodigo()));
+				if (perfil.getPermissoes() != null) {
+					perfil.getPermissoes().forEach(p -> authorities.add(new SimpleGrantedAuthority(p.getCodigo())));
+				}
+			}
+		}
+		// Compatibilidade: banco antigo ainda pode ter usuário sem vínculo
+		// usuario_perfil.
+		if (authorities.isEmpty() && u.getRole() != null) {
+			authorities.add(new SimpleGrantedAuthority("ROLE_" + u.getRole().name()));
+		}
+
+		return User.withUsername(u.getEmail()).password(u.getSenha()).authorities(authorities).disabled(!u.isAtivo())
+				.build();
+	}
+}
